@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Data (large, regeneratable via build_dataset.py)
+data_pipeline/data/
+*.csv.gz
+
+# Node
+node_modules/
+
+# OS
+.DS_Store

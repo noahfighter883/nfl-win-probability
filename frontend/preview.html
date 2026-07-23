@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Win Probability Replay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0E14;
+    --panel: #121826;
+    --panel-2: #182034;
+    --border: #232B3D;
+    --text: #EDEFF3;
+    --text-secondary: #8892A6;
+    --gold: #E8B94A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 8px;
+  }
+  h1 {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+  }
+  .sub {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 0 28px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+  .game-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .game-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .game-btn:hover { border-color: #3A445C; }
+  .game-btn.active {
+    border-color: var(--gold);
+    color: var(--text);
+  }
+  .game-btn .matchup {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .game-title {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+  .game-context {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chart-area { position: relative; margin: 20px 0 8px; }
+  svg { display: block; width: 100%; height: auto; cursor: crosshair; }
+  .team-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: -4px;
+  }
+  .readout {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .readout-stat { flex-shrink: 0; min-width: 96px; }
+  .readout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .readout-value {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+  }
+  .readout-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .readout-desc {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    flex: 1;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .play-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .play-btn:hover { border-color: var(--gold); }
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--gold);
+  }
+  .footnote {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC</p>
+  <h1>Win probability replay</h1>
+  <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
+
+  <div class="game-picker" id="gamePicker"></div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="game-title" id="gameTitle"></div>
+      <div class="game-context" id="gameContext"></div>
+    </div>
+    <div class="chart-area">
+      <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="team-labels">
+      <span id="awayLabel"></span>
+      <span id="homeLabel"></span>
+    </div>
+    <div class="controls">
+      <button class="play-btn" id="playBtn">&#9654;</button>
+      <input type="range" id="scrubber" min="0" max="100" value="0">
+    </div>
+    <div class="readout">
+      <div class="readout-stat">
+        <div class="readout-label">Win probability</div>
+        <div class="readout-value" id="wpValue">--</div>
+        <div class="readout-time" id="timeValue">--</div>
+      </div>
+      <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
+    </div>
+  </div>
+
+  <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Model trained on 2021&ndash;2022 seasons, calibrated on 2023, and never saw the plays in these specific games during training in the case of the 2024 game shown &mdash; the rest are shown for their historical significance despite being partially in-sample.</p>
+</div>
+
+<script>
+const TEAM_COLORS = {
+  MIN: '#4F2683', IND: '#002C5F', KC: '#E31837', CIN: '#FB4F14',
+  BUF: '#00338D', SF: '#AA0000'
+};
+const TEAM_NAMES = {
+  MIN: 'Vikings', IND: 'Colts', KC: 'Chiefs', CIN: 'Bengals',
+  BUF: 'Bills', SF: '49ers'
+};
+
+let GAMES = {};
+let currentGameId = null;
+let playIndex = 0;
+let playTimer = null;
+
+async function loadData() {
+  const res = await fetch('games_data.json');
+  GAMES = await res.json();
+  const ids = Object.keys(GAMES);
+  buildPicker(ids);
+  selectGame(ids[0]);
+}
+
+function buildPicker(ids) {
+  const picker = document.getElementById('gamePicker');
+  picker.innerHTML = '';
+  ids.forEach(id => {
+    const g = GAMES[id];
+    const btn = document.createElement('button');
+    btn.className = 'game-btn' + (id === currentGameId ? ' active' : '');
+    btn.innerHTML = `<div class="matchup">${g.away} @ ${g.home}</div><div>${g.label.split(' \u2014 ')[1] || ''}</div>`;
+    btn.onclick = () => selectGame(id);
+    btn.dataset.id = id;
+    picker.appendChild(btn);
+  });
+}
+
+function selectGame(id) {
+  currentGameId = id;
+  playIndex = 0;
+  stopPlay();
+  document.querySelectorAll('.game-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === id);
+  });
+  const g = GAMES[id];
+  document.getElementById('gameTitle').textContent = g.label.split(' \u2014 ')[0];
+  document.getElementById('gameContext').textContent = g.label.split(' \u2014 ').slice(1).join(' \u2014 ');
+  document.getElementById('awayLabel').textContent = `${TEAM_NAMES[g.away] || g.away} (${g.away})`;
+  document.getElementById('homeLabel').textContent = `${TEAM_NAMES[g.home] || g.home} (${g.home})`;
+  document.getElementById('scrubber').max = g.plays.length - 1;
+  document.getElementById('scrubber').value = 0;
+  drawChart(g);
+  updateReadout(0);
+}
+
+function drawChart(g) {
+  const svg = document.getElementById('chart');
+  const n = g.plays.length;
+  const W = 1000, H = 320, MID = H / 2;
+  const homeColor = TEAM_COLORS[g.home] || '#E8B94A';
+  const awayColor = TEAM_COLORS[g.away] || '#5FA8D3';
+
+  const pts = g.plays.map((p, i) => {
+    const x = (i / (n - 1)) * W;
+    const y = H - (p[2] / 100) * H;
+    return [x, y];
+  });
+
+  const linePath = 'M ' + pts.map(p => p.join(',')).join(' L ');
+  const areaAbove = 'M0,' + MID + ' L ' + pts.map(p => p.join(',')).join(' L ') + ' L ' + W + ',' + MID + ' Z';
+
+  svg.innerHTML = `
+    <line x1="0" y1="${MID}" x2="${W}" y2="${MID}" stroke="#232B3D" stroke-width="2" stroke-dasharray="4,4"/>
+    <clipPath id="clipAbove"><rect x="0" y="0" width="${W}" height="${MID}"/></clipPath>
+    <clipPath id="clipBelow"><rect x="0" y="${MID}" width="${W}" height="${MID}"/></clipPath>
+    <path d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)"/>
+    <path d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)"/>
+    <path d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
+    <circle id="scrubDot" cx="0" cy="${MID}" r="6" fill="#E8B94A" stroke="#0A0E14" stroke-width="2"/>
+  `;
+
+  svg.onclick = (e) => {
+    const rect = svg.getBoundingClientRect();
+    const frac = (e.clientX - rect.left) / rect.width;
+    const idx = Math.round(frac * (n - 1));
+    playIndex = Math.max(0, Math.min(n - 1, idx));
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  };
+}
+
+function updateReadout(idx) {
+  const g = GAMES[currentGameId];
+  const p = g.plays[idx];
+  const [q, secsLeft, homeWp, desc] = p;
+  const dot = document.getElementById('scrubDot');
+  const n = g.plays.length;
+  const x = (idx / (n - 1)) * 1000;
+  const y = 320 - (homeWp / 100) * 320;
+  if (dot) { dot.setAttribute('cx', x); dot.setAttribute('cy', y); }
+
+  const leadingTeam = homeWp >= 50 ? g.home : g.away;
+  const leadingPct = homeWp >= 50 ? homeWp : 100 - homeWp;
+  document.getElementById('wpValue').textContent = `${leadingTeam} ${leadingPct.toFixed(1)}%`;
+  document.getElementById('wpValue').style.color = TEAM_COLORS[leadingTeam] || '#E8B94A';
+
+  const mm = Math.floor((secsLeft % 900) / 60);
+  const ss = Math.floor(secsLeft % 900) % 60;
+  document.getElementById('timeValue').textContent = `Q${q} ${mm}:${ss.toString().padStart(2,'0')}`;
+  document.getElementById('descValue').textContent = desc || '(No play description)';
+}
+
+document.getElementById('scrubber').addEventListener('input', (e) => {
+  playIndex = parseInt(e.target.value);
+  updateReadout(playIndex);
+});
+
+function stopPlay() {
+  clearInterval(playTimer);
+  playTimer = null;
+  document.getElementById('playBtn').innerHTML = '&#9654;';
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  const g = GAMES[currentGameId];
+  if (playTimer) {
+    stopPlay();
+    return;
+  }
+  document.getElementById('playBtn').innerHTML = '&#10074;&#10074;';
+  playTimer = setInterval(() => {
+    playIndex++;
+    if (playIndex >= g.plays.length) {
+      stopPlay();
+      playIndex = g.plays.length - 1;
+      return;
+    }
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  }, 90);
+});
+
+loadData();
+</script>
+</body>
+</html>
