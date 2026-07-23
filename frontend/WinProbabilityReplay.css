@@ -27,11 +27,16 @@
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .wp-game-btn:hover {
   border-color: #3a445c;
+  transform: translateY(-1px);
+}
+
+.wp-game-btn:active {
+  transform: translateY(0);
 }
 
 .wp-game-btn.active {
@@ -57,6 +62,25 @@
   border: 1px solid var(--wp-border);
   border-radius: 10px;
   padding: 24px;
+}
+
+.wp-panel-content {
+  animation: wp-fade-in 0.25s ease;
+}
+
+@keyframes wp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wp-scrub-dot {
+  transition: cx 0.12s linear, cy 0.12s linear;
 }
 
 .wp-panel-header {
@@ -124,8 +148,16 @@
   flex-shrink: 0;
 }
 
+.wp-play-btn {
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
 .wp-play-btn:hover {
   border-color: var(--wp-gold);
+}
+
+.wp-play-btn:active {
+  transform: scale(0.92);
 }
 
 .wp-controls input[type="range"] {
@@ -172,4 +204,16 @@
   line-height: 1.5;
   color: var(--wp-text);
   flex: 1;
+}
+
+.wp-replay :focus-visible {
+  outline: 2px solid var(--wp-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wp-replay * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

@@ -2,7 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Win Probability Replay</title>
+<meta name="description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta name="theme-color" content="#0A0E14">
+<meta property="og:type" content="website">
+<meta property="og:title" content="NFL Win Probability Replay">
+<meta property="og:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NFL Win Probability Replay">
+<meta name="twitter:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -64,9 +74,10 @@
     border-radius: 6px;
     cursor: pointer;
     text-align: left;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   }
-  .game-btn:hover { border-color: #3A445C; }
+  .game-btn:hover { border-color: #3A445C; transform: translateY(-1px); }
+  .game-btn:active { transform: translateY(0); }
   .game-btn.active {
     border-color: var(--gold);
     color: var(--text);
@@ -84,6 +95,13 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 24px;
+  }
+  .panel-content {
+    animation: wp-fade-in 0.25s ease;
+  }
+  @keyframes wp-fade-in {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .panel-header {
     display: flex;
@@ -168,9 +186,16 @@
     flex-shrink: 0;
   }
   .play-btn:hover { border-color: var(--gold); }
+  .play-btn:active { transform: scale(0.92); }
+  .play-btn {
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
   input[type="range"] {
     flex: 1;
     accent-color: var(--gold);
+  }
+  #scrubDot {
+    transition: cx 0.12s linear, cy 0.12s linear;
   }
   .footnote {
     font-size: 12px;
@@ -178,43 +203,58 @@
     margin-top: 20px;
     line-height: 1.5;
   }
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC</p>
-  <h1>Win probability replay</h1>
-  <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
+  <header>
+    <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC</p>
+    <h1>Win probability replay</h1>
+    <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
+  </header>
 
-  <div class="game-picker" id="gamePicker"></div>
+  <main>
+    <div class="game-picker" id="gamePicker" role="group" aria-label="Select a game to replay"></div>
 
-  <div class="panel">
-    <div class="panel-header">
-      <div class="game-title" id="gameTitle"></div>
-      <div class="game-context" id="gameContext"></div>
-    </div>
-    <div class="chart-area">
-      <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
-    </div>
-    <div class="team-labels">
-      <span id="awayLabel"></span>
-      <span id="homeLabel"></span>
-    </div>
-    <div class="controls">
-      <button class="play-btn" id="playBtn">&#9654;</button>
-      <input type="range" id="scrubber" min="0" max="100" value="0">
-    </div>
-    <div class="readout">
-      <div class="readout-stat">
-        <div class="readout-label">Win probability</div>
-        <div class="readout-value" id="wpValue">--</div>
-        <div class="readout-time" id="timeValue">--</div>
+    <div class="panel">
+      <div class="panel-content">
+        <div class="panel-header">
+          <div class="game-title" id="gameTitle"></div>
+          <div class="game-context" id="gameContext"></div>
+        </div>
+        <div class="chart-area">
+          <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Win probability chart for the selected play"></svg>
+        </div>
+        <div class="team-labels">
+          <span id="awayLabel"></span>
+          <span id="homeLabel"></span>
+        </div>
+        <div class="controls">
+          <button class="play-btn" id="playBtn" aria-label="Play" aria-pressed="false">&#9654;</button>
+          <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Play scrubber">
+        </div>
+        <div class="readout" aria-live="polite">
+          <div class="readout-stat">
+            <div class="readout-label">Win probability</div>
+            <div class="readout-value" id="wpValue">--</div>
+            <div class="readout-time" id="timeValue">--</div>
+          </div>
+          <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
+        </div>
       </div>
-      <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
     </div>
-  </div>
+  </main>
 
-  <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Model trained on 2021&ndash;2022 seasons, calibrated on 2023, and never saw the plays in these specific games during training in the case of the 2024 game shown &mdash; the rest are shown for their historical significance despite being partially in-sample.</p>
+  <footer>
+    <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Model trained on 2021&ndash;2022 seasons, calibrated on 2023, and never saw the plays in these specific games during training in the case of the 2024 game shown &mdash; the rest are shown for their historical significance despite being partially in-sample.</p>
+  </footer>
 </div>
 
 <script>
@@ -248,6 +288,7 @@ function buildPicker(ids) {
     const g = GAMES[id];
     const btn = document.createElement('button');
     btn.className = 'game-btn' + (id === currentGameId ? ' active' : '');
+    btn.setAttribute('aria-pressed', id === currentGameId ? 'true' : 'false');
     btn.innerHTML = `<div class="matchup">${g.away} @ ${g.home}</div><div>${g.label.split(' \u2014 ')[1] || ''}</div>`;
     btn.onclick = () => selectGame(id);
     btn.dataset.id = id;
@@ -260,7 +301,9 @@ function selectGame(id) {
   playIndex = 0;
   stopPlay();
   document.querySelectorAll('.game-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.id === id);
+    const isActive = b.dataset.id === id;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
   });
   const g = GAMES[id];
   document.getElementById('gameTitle').textContent = g.label.split(' \u2014 ')[0];
@@ -271,6 +314,12 @@ function selectGame(id) {
   document.getElementById('scrubber').value = 0;
   drawChart(g);
   updateReadout(0);
+
+  // Retrigger the fade-in whisper on the panel content each time the game changes.
+  const content = document.querySelector('.panel-content');
+  content.style.animation = 'none';
+  void content.offsetWidth;
+  content.style.animation = '';
 }
 
 function drawChart(g) {
@@ -342,7 +391,10 @@ document.getElementById('scrubber').addEventListener('input', (e) => {
 function stopPlay() {
   clearInterval(playTimer);
   playTimer = null;
-  document.getElementById('playBtn').innerHTML = '&#9654;';
+  const btn = document.getElementById('playBtn');
+  btn.innerHTML = '&#9654;';
+  btn.setAttribute('aria-label', 'Play');
+  btn.setAttribute('aria-pressed', 'false');
 }
 
 function togglePlay() {
@@ -352,7 +404,10 @@ function togglePlay() {
     return;
   }
   if (playIndex >= g.plays.length - 1) playIndex = 0;
-  document.getElementById('playBtn').innerHTML = '&#10074;&#10074;';
+  const btn = document.getElementById('playBtn');
+  btn.innerHTML = '&#10074;&#10074;';
+  btn.setAttribute('aria-label', 'Pause');
+  btn.setAttribute('aria-pressed', 'true');
   playTimer = setInterval(() => {
     playIndex++;
     if (playIndex >= g.plays.length) {

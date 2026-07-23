@@ -167,7 +167,7 @@ export default function WinProbabilityReplay({ gamesData }) {
 
   return (
     <div className="wp-replay">
-      <div className="wp-picker">
+      <div className="wp-picker" role="group" aria-label="Select a game to replay">
         {gameIds.map((id) => {
           const g = gamesData[id];
           const [, ...ctx] = (g.label || "").split(" — ");
@@ -176,6 +176,7 @@ export default function WinProbabilityReplay({ gamesData }) {
               key={id}
               onClick={() => selectGame(id)}
               className={`wp-game-btn ${id === currentGameId ? "active" : ""}`}
+              aria-pressed={id === currentGameId}
             >
               <div className="wp-matchup">
                 {g.away} @ {g.home}
@@ -187,95 +188,106 @@ export default function WinProbabilityReplay({ gamesData }) {
       </div>
 
       <div className="wp-panel">
-        <div className="wp-panel-header">
-          <div className="wp-game-title">{titlePart}</div>
-          <div className="wp-game-context">{contextParts.join(" — ")}</div>
-        </div>
-
-        <div className="wp-chart-area">
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-            preserveAspectRatio="none"
-            onClick={handleChartClick}
-          >
-            <line
-              x1="0"
-              y1={MID}
-              x2={CHART_W}
-              y2={MID}
-              stroke="#232B3D"
-              strokeWidth="2"
-              strokeDasharray="4,4"
-            />
-            <clipPath id={`clipAbove-${currentGameId}`}>
-              <rect x="0" y="0" width={CHART_W} height={MID} />
-            </clipPath>
-            <clipPath id={`clipBelow-${currentGameId}`}>
-              <rect x="0" y={MID} width={CHART_W} height={MID} />
-            </clipPath>
-            <path
-              d={areaPath}
-              fill={homeColor}
-              fillOpacity="0.35"
-              clipPath={`url(#clipAbove-${currentGameId})`}
-            />
-            <path
-              d={areaPath}
-              fill={awayColor}
-              fillOpacity="0.35"
-              clipPath={`url(#clipBelow-${currentGameId})`}
-            />
-            <path d={linePath} fill="none" stroke={GOLD} strokeWidth="2.5" />
-            {points[playIndex] && (
-              <circle
-                cx={points[playIndex][0]}
-                cy={points[playIndex][1]}
-                r="6"
-                fill={GOLD}
-                stroke="#0A0E14"
-                strokeWidth="2"
-              />
-            )}
-          </svg>
-        </div>
-
-        <div className="wp-team-labels">
-          <span>
-            {TEAM_NAMES[game.away] || game.away} ({game.away})
-          </span>
-          <span>
-            {TEAM_NAMES[game.home] || game.home} ({game.home})
-          </span>
-        </div>
-
-        <div className="wp-controls">
-          <button className="wp-play-btn" onClick={togglePlay} aria-label={isPlaying ? "Pause" : "Play"}>
-            {isPlaying ? "❚❚" : "▶"}
-          </button>
-          <input
-            type="range"
-            min="0"
-            max={Math.max(n - 1, 0)}
-            value={playIndex}
-            onChange={(e) => {
-              stopPlay();
-              setPlayIndex(parseInt(e.target.value, 10));
-            }}
-          />
-        </div>
-
-        <div className="wp-readout">
-          <div className="wp-readout-stat">
-            <div className="wp-readout-label">Win probability</div>
-            <div className="wp-readout-value" style={{ color: leadingColor }}>
-              {leadingTeam} {leadingPct.toFixed(1)}%
-            </div>
-            <div className="wp-readout-time">
-              Q{qtr} {formatClock(secsLeft)}
-            </div>
+        <div className="wp-panel-content" key={currentGameId}>
+          <div className="wp-panel-header">
+            <div className="wp-game-title">{titlePart}</div>
+            <div className="wp-game-context">{contextParts.join(" — ")}</div>
           </div>
-          <div className="wp-readout-desc">{desc || "(No play description)"}</div>
+
+          <div className="wp-chart-area">
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+              preserveAspectRatio="none"
+              onClick={handleChartClick}
+              role="img"
+              aria-label="Win probability chart for the selected play"
+            >
+              <line
+                x1="0"
+                y1={MID}
+                x2={CHART_W}
+                y2={MID}
+                stroke="#232B3D"
+                strokeWidth="2"
+                strokeDasharray="4,4"
+              />
+              <clipPath id={`clipAbove-${currentGameId}`}>
+                <rect x="0" y="0" width={CHART_W} height={MID} />
+              </clipPath>
+              <clipPath id={`clipBelow-${currentGameId}`}>
+                <rect x="0" y={MID} width={CHART_W} height={MID} />
+              </clipPath>
+              <path
+                d={areaPath}
+                fill={homeColor}
+                fillOpacity="0.35"
+                clipPath={`url(#clipAbove-${currentGameId})`}
+              />
+              <path
+                d={areaPath}
+                fill={awayColor}
+                fillOpacity="0.35"
+                clipPath={`url(#clipBelow-${currentGameId})`}
+              />
+              <path d={linePath} fill="none" stroke={GOLD} strokeWidth="2.5" />
+              {points[playIndex] && (
+                <circle
+                  className="wp-scrub-dot"
+                  cx={points[playIndex][0]}
+                  cy={points[playIndex][1]}
+                  r="6"
+                  fill={GOLD}
+                  stroke="#0A0E14"
+                  strokeWidth="2"
+                />
+              )}
+            </svg>
+          </div>
+
+          <div className="wp-team-labels">
+            <span>
+              {TEAM_NAMES[game.away] || game.away} ({game.away})
+            </span>
+            <span>
+              {TEAM_NAMES[game.home] || game.home} ({game.home})
+            </span>
+          </div>
+
+          <div className="wp-controls">
+            <button
+              className="wp-play-btn"
+              onClick={togglePlay}
+              aria-label={isPlaying ? "Pause" : "Play"}
+              aria-pressed={isPlaying}
+            >
+              {isPlaying ? "❚❚" : "▶"}
+            </button>
+            <input
+              type="range"
+              min="0"
+              max={Math.max(n - 1, 0)}
+              value={playIndex}
+              aria-label="Play scrubber"
+              onChange={(e) => {
+                stopPlay();
+                setPlayIndex(parseInt(e.target.value, 10));
+              }}
+            />
+          </div>
+
+          <div className="wp-readout" aria-live="polite">
+            <div className="wp-readout-stat">
+              <div className="wp-readout-label">Win probability</div>
+              <div className="wp-readout-value" style={{ color: leadingColor }}>
+                {leadingTeam} {leadingPct.toFixed(1)}%
+              </div>
+              <div className="wp-readout-time">
+                Q{qtr} {formatClock(secsLeft)}
+              </div>
+            </div>
+            <div className="wp-readout-desc">{desc || "(No play description)"}</div>
+          </div>
         </div>
       </div>
     </div>
