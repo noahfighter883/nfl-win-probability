@@ -28,7 +28,10 @@ const CHART_H = 320;
 const MID = CHART_H / 2;
 
 function formatClock(secsLeft) {
-  const inQuarter = secsLeft % 900;
+  // secsLeft counts down within the current period (max 900, i.e. 15:00).
+  // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
+  // not that no time remains - `|| 900` corrects that edge case.
+  const inQuarter = secsLeft % 900 || (secsLeft > 0 ? 900 : 0);
   const mm = Math.floor(inQuarter / 60);
   const ss = Math.floor(inQuarter % 60);
   return `${mm}:${ss.toString().padStart(2, "0")}`;
@@ -120,6 +123,26 @@ export default function WinProbabilityReplay({ gamesData }) {
       setIsPlaying(true);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (n === 0) return;
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        stopPlay();
+        setPlayIndex((prev) => Math.min(n - 1, prev + 1));
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        stopPlay();
+        setPlayIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === " ") {
+        e.preventDefault();
+        togglePlay();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [n, stopPlay, togglePlay]);
 
   const handleChartClick = (e) => {
     if (!svgRef.current || n === 0) return;

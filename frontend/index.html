@@ -234,6 +234,7 @@ let playTimer = null;
 
 async function loadData() {
   const res = await fetch('games_data.json');
+  if (!res.ok) throw new Error(`Failed to fetch games_data.json (${res.status})`);
   GAMES = await res.json();
   const ids = Object.keys(GAMES);
   buildPicker(ids);
@@ -323,8 +324,12 @@ function updateReadout(idx) {
   document.getElementById('wpValue').textContent = `${leadingTeam} ${leadingPct.toFixed(1)}%`;
   document.getElementById('wpValue').style.color = TEAM_COLORS[leadingTeam] || '#E8B94A';
 
-  const mm = Math.floor((secsLeft % 900) / 60);
-  const ss = Math.floor(secsLeft % 900) % 60;
+  // secsLeft counts down within the current period (max 900, i.e. 15:00).
+  // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
+  // not that no time remains - `|| 900` corrects that edge case.
+  const inQuarter = secsLeft % 900 || (secsLeft > 0 ? 900 : 0);
+  const mm = Math.floor(inQuarter / 60);
+  const ss = Math.floor(inQuarter % 60);
   document.getElementById('timeValue').textContent = `Q${q} ${mm}:${ss.toString().padStart(2,'0')}`;
   document.getElementById('descValue').textContent = desc || '(No play description)';
 }
@@ -340,12 +345,13 @@ function stopPlay() {
   document.getElementById('playBtn').innerHTML = '&#9654;';
 }
 
-document.getElementById('playBtn').addEventListener('click', () => {
+function togglePlay() {
   const g = GAMES[currentGameId];
   if (playTimer) {
     stopPlay();
     return;
   }
+  if (playIndex >= g.plays.length - 1) playIndex = 0;
   document.getElementById('playBtn').innerHTML = '&#10074;&#10074;';
   playTimer = setInterval(() => {
     playIndex++;
@@ -357,9 +363,36 @@ document.getElementById('playBtn').addEventListener('click', () => {
     document.getElementById('scrubber').value = playIndex;
     updateReadout(playIndex);
   }, 90);
+}
+
+document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+document.addEventListener('keydown', (e) => {
+  const g = GAMES[currentGameId];
+  if (!g) return;
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    stopPlay();
+    playIndex = Math.min(g.plays.length - 1, playIndex + 1);
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    stopPlay();
+    playIndex = Math.max(0, playIndex - 1);
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    togglePlay();
+  }
 });
 
-loadData();
+loadData().catch((err) => {
+  console.error(err);
+  document.getElementById('gameTitle').textContent = 'Failed to load game data';
+  document.getElementById('gameContext').textContent = String(err.message || err);
+});
 </script>
 </body>
 </html>
