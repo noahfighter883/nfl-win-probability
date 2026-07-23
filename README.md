@@ -2,7 +2,7 @@
 
 A win probability model trained from scratch on play-by-play NFL data, plus
 an interactive replay of five of the most dramatic games of the last four
-seasons.
+seasons. (Try it Out)[https://nfl-win-probability-5lzczwh2z-noahfight123.vercel.app/]
 
 ## What this is
 
