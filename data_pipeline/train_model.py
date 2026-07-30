@@ -11,12 +11,7 @@ from sklearn.isotonic import IsotonicRegression
 import xgboost as xgb
 import json
 
-FEATURE_COLS = [
-    "score_differential", "game_seconds_remaining", "yardline_100", "ydstogo",
-    "posteam_timeouts_remaining", "defteam_timeouts_remaining", "score_diff_x_time",
-    "is_home", "is_two_minute_drill", "is_garbage_time", "is_red_zone",
-    "down_1", "down_2", "down_3", "down_4"
-]
+from features import FEATURE_COLS
 
 def main():
     df = pd.read_parquet("data/model_dataset.parquet")

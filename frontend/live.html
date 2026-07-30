@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Win Probability Replay</title>
-<meta name="description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<title>Live Win Probability</title>
+<meta name="description" content="Real-time NFL win probability, computed play-by-play by a model trained from scratch on 166k plays.">
 <meta name="theme-color" content="#0A0E14">
 <meta property="og:type" content="website">
-<meta property="og:title" content="NFL Win Probability Replay">
-<meta property="og:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta property="og:title" content="Live NFL Win Probability">
+<meta property="og:description" content="Real-time NFL win probability, computed play-by-play by a model trained from scratch on 166k plays.">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="NFL Win Probability Replay">
-<meta name="twitter:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta name="twitter:title" content="Live NFL Win Probability">
+<meta name="twitter:description" content="Real-time NFL win probability, computed play-by-play by a model trained from scratch on 166k plays.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -24,6 +24,7 @@
     --text: #EDEFF3;
     --text-secondary: #8892A6;
     --gold: #E8B94A;
+    --live: #E0453F;
   }
   * { box-sizing: border-box; }
   body {
@@ -41,7 +42,11 @@
     text-transform: uppercase;
     color: var(--gold);
     margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
+  .eyebrow a { color: inherit; }
   h1 {
     font-family: 'Archivo Narrow', sans-serif;
     font-weight: 700;
@@ -89,6 +94,22 @@
     color: var(--text);
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--live);
+    flex-shrink: 0;
+    animation: live-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
   }
   .panel {
     background: var(--panel);
@@ -117,6 +138,9 @@
     font-size: 18px;
     text-transform: uppercase;
     letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .game-context {
     font-size: 12px;
@@ -203,64 +227,47 @@
     margin-top: 20px;
     line-height: 1.5;
   }
+  .empty-state {
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 40px 24px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
   :focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    .live-dot { animation: none; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC</p>
-    <h1>Win probability replay</h1>
-    <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
+    <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span>Live &middot; updates automatically &middot; <a href="./index.html">See historical replays &rarr;</a></p>
+    <h1>Live win probability</h1>
+    <p class="sub">The same model from the historical replay - XGBoost, isotonic calibrated, trained on 166k plays from 2021&ndash;2024 - scoring this week's games play by play as they happen.</p>
   </header>
 
   <main>
-    <div class="game-picker" id="gamePicker" role="group" aria-label="Select a game to replay"></div>
-
-    <div class="panel">
-      <div class="panel-content">
-        <div class="panel-header">
-          <div class="game-title" id="gameTitle"></div>
-          <div class="game-context" id="gameContext"></div>
-        </div>
-        <div class="chart-area">
-          <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Win probability chart for the selected play"></svg>
-        </div>
-        <div class="team-labels">
-          <span id="awayLabel"></span>
-          <span id="homeLabel"></span>
-        </div>
-        <div class="controls">
-          <button class="play-btn" id="playBtn" aria-label="Play" aria-pressed="false">&#9654;</button>
-          <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Play scrubber">
-        </div>
-        <div class="readout" aria-live="polite">
-          <div class="readout-stat">
-            <div class="readout-label">Win probability</div>
-            <div class="readout-value" id="wpValue">--</div>
-            <div class="readout-time" id="timeValue">--</div>
-          </div>
-          <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
-        </div>
-      </div>
+    <div class="game-picker" id="gamePicker" role="group" aria-label="Select a game to follow"></div>
+    <div id="panelWrap">
+      <div class="empty-state" id="emptyState">No games in progress right now &mdash; check back during kickoff.</div>
     </div>
   </main>
 
   <footer>
-    <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Model trained on 2021&ndash;2022 seasons, calibrated on 2023, and never saw the plays in these specific games during training in the case of the 2024 game shown &mdash; the rest are shown for their historical significance despite being partially in-sample.</p>
+    <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Live plays are sourced from ESPN's public game feed and scored with the same feature pipeline the model was trained on; scoring can lag the broadcast by the poll interval.</p>
   </footer>
 </div>
 
 <script>
-// Covers all 32 teams so the live tracker can show any matchup, not just
-// the 6 teams in the showcase replays. WAS/WSH both map to Washington -
-// nflverse (historical showcase data) uses "WAS", ESPN (live feed) uses "WSH".
+// Covers all 32 teams. WAS/WSH both map to Washington - nflverse (historical
+// showcase data) uses "WAS", ESPN (this live feed) uses "WSH".
 const TEAM_COLORS = {
   ARI: '#97233F', ATL: '#A71930', BAL: '#241773', BUF: '#00338D',
   CAR: '#0085CA', CHI: '#0B162A', CIN: '#FB4F14', CLE: '#311D00',
@@ -282,18 +289,95 @@ const TEAM_NAMES = {
   SF: '49ers', TB: 'Buccaneers', TEN: 'Titans', WAS: 'Commanders', WSH: 'Commanders'
 };
 
+// Wherever data_pipeline/live_score.py's output gets published (see
+// .github/workflows/live-poll.yml). Relative by default so this works when
+// the poller writes into the same served directory as this page.
+const DATA_URL = 'live_games_data.json';
+const POLL_MS = 20000;
+
 let GAMES = {};
 let currentGameId = null;
 let playIndex = 0;
 let playTimer = null;
+let atTip = true;
 
-async function loadData() {
-  const res = await fetch('games_data.json');
-  if (!res.ok) throw new Error(`Failed to fetch games_data.json (${res.status})`);
-  GAMES = await res.json();
-  const ids = Object.keys(GAMES);
-  buildPicker(ids);
-  selectGame(ids[0]);
+const PANEL_HTML = `
+  <div class="panel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <div class="game-title" id="gameTitle"></div>
+        <div class="game-context" id="gameContext"></div>
+      </div>
+      <div class="chart-area">
+        <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Win probability chart for the selected play"></svg>
+      </div>
+      <div class="team-labels">
+        <span id="awayLabel"></span>
+        <span id="homeLabel"></span>
+      </div>
+      <div class="controls">
+        <button class="play-btn" id="playBtn" aria-label="Play" aria-pressed="false">&#9654;</button>
+        <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Play scrubber">
+      </div>
+      <div class="readout" aria-live="polite">
+        <div class="readout-stat">
+          <div class="readout-label">Win probability</div>
+          <div class="readout-value" id="wpValue">--</div>
+          <div class="readout-time" id="timeValue">--</div>
+        </div>
+        <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
+      </div>
+    </div>
+  </div>
+`;
+
+function isLive(g) {
+  return Boolean(g.status) && g.status !== 'STATUS_FINAL';
+}
+
+async function pollData() {
+  try {
+    const res = await fetch(DATA_URL, { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const prevN = (currentGameId && GAMES[currentGameId]) ? GAMES[currentGameId].plays.length : 0;
+    GAMES = data;
+    const ids = Object.keys(GAMES);
+    buildPicker(ids);
+
+    if (!ids.length) {
+      document.getElementById('panelWrap').innerHTML = '<div class="empty-state" id="emptyState">No games in progress right now &mdash; check back during kickoff.</div>';
+      currentGameId = null;
+      return;
+    }
+
+    if (document.getElementById('emptyState') || !currentGameId || !GAMES[currentGameId]) {
+      selectGame(ids[0]);
+      return;
+    }
+
+    // Same game still selected: redraw in place and only jump the readout
+    // to the newest play if the viewer was already caught up.
+    const g = GAMES[currentGameId];
+    document.getElementById('scrubber').max = g.plays.length - 1;
+    drawChart(g);
+    if (atTip && g.plays.length > prevN) {
+      playIndex = g.plays.length - 1;
+    }
+    playIndex = Math.min(playIndex, g.plays.length - 1);
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+    updateHeader(g);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function liveDot() {
+  const dot = document.createElement('span');
+  dot.className = 'live-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  return dot;
 }
 
 function buildPicker(ids) {
@@ -304,37 +388,55 @@ function buildPicker(ids) {
     const btn = document.createElement('button');
     btn.className = 'game-btn' + (id === currentGameId ? ' active' : '');
     btn.setAttribute('aria-pressed', id === currentGameId ? 'true' : 'false');
-    btn.innerHTML = `<div class="matchup">${g.away} @ ${g.home}</div><div>${g.label.split(' \u2014 ')[1] || ''}</div>`;
+
+    const matchup = document.createElement('div');
+    matchup.className = 'matchup';
+    if (isLive(g)) matchup.appendChild(liveDot());
+    matchup.appendChild(document.createTextNode(`${g.away} @ ${g.home}`));
+
+    const sub = document.createElement('div');
+    sub.textContent = (g.label || '').split(' — ').slice(1).join(' — ');
+
+    btn.appendChild(matchup);
+    btn.appendChild(sub);
     btn.onclick = () => selectGame(id);
     btn.dataset.id = id;
     picker.appendChild(btn);
   });
 }
 
+function updateHeader(g) {
+  const [titlePart, ...ctx] = (g.label || '').split(' — ');
+  const titleEl = document.getElementById('gameTitle');
+  titleEl.innerHTML = '';
+  if (isLive(g)) titleEl.appendChild(liveDot());
+  titleEl.appendChild(document.createTextNode(titlePart));
+  document.getElementById('gameContext').textContent = ctx.join(' — ');
+  document.getElementById('awayLabel').textContent = `${TEAM_NAMES[g.away] || g.away} (${g.away})`;
+  document.getElementById('homeLabel').textContent = `${TEAM_NAMES[g.home] || g.home} (${g.home})`;
+}
+
 function selectGame(id) {
   currentGameId = id;
   playIndex = 0;
+  atTip = true;
   stopPlay();
-  document.querySelectorAll('.game-btn').forEach(b => {
-    const isActive = b.dataset.id === id;
-    b.classList.toggle('active', isActive);
-    b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  document.getElementById('panelWrap').innerHTML = PANEL_HTML;
+
+  document.getElementById('scrubber').addEventListener('input', (e) => {
+    playIndex = parseInt(e.target.value, 10);
+    atTip = playIndex >= GAMES[currentGameId].plays.length - 1;
+    updateReadout(playIndex);
   });
+  document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+  buildPicker(Object.keys(GAMES));
   const g = GAMES[id];
-  document.getElementById('gameTitle').textContent = g.label.split(' \u2014 ')[0];
-  document.getElementById('gameContext').textContent = g.label.split(' \u2014 ').slice(1).join(' \u2014 ');
-  document.getElementById('awayLabel').textContent = `${TEAM_NAMES[g.away] || g.away} (${g.away})`;
-  document.getElementById('homeLabel').textContent = `${TEAM_NAMES[g.home] || g.home} (${g.home})`;
-  document.getElementById('scrubber').max = g.plays.length - 1;
+  updateHeader(g);
+  document.getElementById('scrubber').max = Math.max(g.plays.length - 1, 0);
   document.getElementById('scrubber').value = 0;
   drawChart(g);
   updateReadout(0);
-
-  // Retrigger the fade-in whisper on the panel content each time the game changes.
-  const content = document.querySelector('.panel-content');
-  content.style.animation = 'none';
-  void content.offsetWidth;
-  content.style.animation = '';
 }
 
 function drawChart(g) {
@@ -344,8 +446,13 @@ function drawChart(g) {
   const homeColor = TEAM_COLORS[g.home] || '#E8B94A';
   const awayColor = TEAM_COLORS[g.away] || '#5FA8D3';
 
+  if (n === 0) {
+    svg.innerHTML = '';
+    return;
+  }
+
   const pts = g.plays.map((p, i) => {
-    const x = (i / (n - 1)) * W;
+    const x = n > 1 ? (i / (n - 1)) * W : 0;
     const y = H - (p[2] / 100) * H;
     return [x, y];
   });
@@ -368,6 +475,7 @@ function drawChart(g) {
     const frac = (e.clientX - rect.left) / rect.width;
     const idx = Math.round(frac * (n - 1));
     playIndex = Math.max(0, Math.min(n - 1, idx));
+    atTip = playIndex >= n - 1;
     document.getElementById('scrubber').value = playIndex;
     updateReadout(playIndex);
   };
@@ -375,11 +483,12 @@ function drawChart(g) {
 
 function updateReadout(idx) {
   const g = GAMES[currentGameId];
+  if (!g || !g.plays.length) return;
   const p = g.plays[idx];
   const [q, secsLeft, homeWp, desc] = p;
   const dot = document.getElementById('scrubDot');
   const n = g.plays.length;
-  const x = (idx / (n - 1)) * 1000;
+  const x = n > 1 ? (idx / (n - 1)) * 1000 : 0;
   const y = 320 - (homeWp / 100) * 320;
   if (dot) { dot.setAttribute('cx', x); dot.setAttribute('cy', y); }
 
@@ -388,9 +497,8 @@ function updateReadout(idx) {
   document.getElementById('wpValue').textContent = `${leadingTeam} ${leadingPct.toFixed(1)}%`;
   document.getElementById('wpValue').style.color = TEAM_COLORS[leadingTeam] || '#E8B94A';
 
-  // secsLeft counts down within the current period (max 900, i.e. 15:00).
-  // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
-  // not that no time remains - `|| 900` corrects that edge case.
+  // secsLeft is game_seconds_remaining (counts down from 3600 across
+  // regulation, resets for OT) - %900 recovers the in-quarter clock.
   const inQuarter = secsLeft % 900 || (secsLeft > 0 ? 900 : 0);
   const mm = Math.floor(inQuarter / 60);
   const ss = Math.floor(inQuarter % 60);
@@ -398,15 +506,11 @@ function updateReadout(idx) {
   document.getElementById('descValue').textContent = desc || '(No play description)';
 }
 
-document.getElementById('scrubber').addEventListener('input', (e) => {
-  playIndex = parseInt(e.target.value);
-  updateReadout(playIndex);
-});
-
 function stopPlay() {
   clearInterval(playTimer);
   playTimer = null;
   const btn = document.getElementById('playBtn');
+  if (!btn) return;
   btn.innerHTML = '&#9654;';
   btn.setAttribute('aria-label', 'Play');
   btn.setAttribute('aria-pressed', 'false');
@@ -419,6 +523,7 @@ function togglePlay() {
     return;
   }
   if (playIndex >= g.plays.length - 1) playIndex = 0;
+  atTip = false;
   const btn = document.getElementById('playBtn');
   btn.innerHTML = '&#10074;&#10074;';
   btn.setAttribute('aria-label', 'Pause');
@@ -428,6 +533,7 @@ function togglePlay() {
     if (playIndex >= g.plays.length) {
       stopPlay();
       playIndex = g.plays.length - 1;
+      atTip = true;
       return;
     }
     document.getElementById('scrubber').value = playIndex;
@@ -435,21 +541,21 @@ function togglePlay() {
   }, 90);
 }
 
-document.getElementById('playBtn').addEventListener('click', togglePlay);
-
 document.addEventListener('keydown', (e) => {
   const g = GAMES[currentGameId];
-  if (!g) return;
+  if (!g || !document.getElementById('scrubber')) return;
   if (e.key === 'ArrowRight') {
     e.preventDefault();
     stopPlay();
     playIndex = Math.min(g.plays.length - 1, playIndex + 1);
+    atTip = playIndex >= g.plays.length - 1;
     document.getElementById('scrubber').value = playIndex;
     updateReadout(playIndex);
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault();
     stopPlay();
     playIndex = Math.max(0, playIndex - 1);
+    atTip = playIndex >= g.plays.length - 1;
     document.getElementById('scrubber').value = playIndex;
     updateReadout(playIndex);
   } else if (e.key === ' ') {
@@ -458,11 +564,8 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-loadData().catch((err) => {
-  console.error(err);
-  document.getElementById('gameTitle').textContent = 'Failed to load game data';
-  document.getElementById('gameContext').textContent = String(err.message || err);
-});
+pollData();
+setInterval(pollData, POLL_MS);
 </script>
 </body>
 </html>

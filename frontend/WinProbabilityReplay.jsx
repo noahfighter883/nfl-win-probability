@@ -4,22 +4,29 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./WinProbabilityReplay.css";
 
 // Real team colors, used only for the chart fill split and readout text.
+// Covers all 32 teams so the live tracker can show any matchup, not just
+// the 6 teams in the showcase replays. WAS/WSH both map to Washington -
+// nflverse (historical showcase data) uses "WAS", ESPN (live feed) uses "WSH".
 const TEAM_COLORS = {
-  MIN: "#4F2683",
-  IND: "#002C5F",
-  KC: "#E31837",
-  CIN: "#FB4F14",
-  BUF: "#00338D",
-  SF: "#AA0000",
+  ARI: "#97233F", ATL: "#A71930", BAL: "#241773", BUF: "#00338D",
+  CAR: "#0085CA", CHI: "#0B162A", CIN: "#FB4F14", CLE: "#311D00",
+  DAL: "#041E42", DEN: "#002244", DET: "#0076B6", GB: "#203731",
+  HOU: "#03202F", IND: "#002C5F", JAX: "#101820", KC: "#E31837",
+  LAC: "#0080C6", LAR: "#003594", LV: "#A5ACAF", MIA: "#008E97",
+  MIN: "#4F2683", NE: "#002244", NO: "#D3BC8D", NYG: "#0B2265",
+  NYJ: "#125740", PHI: "#004C54", PIT: "#FFB612", SEA: "#69BE28",
+  SF: "#AA0000", TB: "#D50A0A", TEN: "#4B92DB", WAS: "#5A1414", WSH: "#5A1414",
 };
 
 const TEAM_NAMES = {
-  MIN: "Vikings",
-  IND: "Colts",
-  KC: "Chiefs",
-  CIN: "Bengals",
-  BUF: "Bills",
-  SF: "49ers",
+  ARI: "Cardinals", ATL: "Falcons", BAL: "Ravens", BUF: "Bills",
+  CAR: "Panthers", CHI: "Bears", CIN: "Bengals", CLE: "Browns",
+  DAL: "Cowboys", DEN: "Broncos", DET: "Lions", GB: "Packers",
+  HOU: "Texans", IND: "Colts", JAX: "Jaguars", KC: "Chiefs",
+  LAC: "Chargers", LAR: "Rams", LV: "Raiders", MIA: "Dolphins",
+  MIN: "Vikings", NE: "Patriots", NO: "Saints", NYG: "Giants",
+  NYJ: "Jets", PHI: "Eagles", PIT: "Steelers", SEA: "Seahawks",
+  SF: "49ers", TB: "Buccaneers", TEN: "Titans", WAS: "Commanders", WSH: "Commanders",
 };
 
 const GOLD = "#E8B94A";
@@ -52,18 +59,73 @@ function formatClock(secsLeft) {
  *
  * Fetch this from /public/data/games_data.json and pass it in, or fetch
  * inside a parent server component and pass down as a prop.
+ *
+ * Pass `liveUrl` to additionally poll a live games_data JSON endpoint
+ * (written by data_pipeline/live_score.py) every `livePollMs` and merge it
+ * in. Live entries also carry a `status` field (e.g. "STATUS_IN_PROGRESS",
+ * "STATUS_FINAL") used to show the LIVE badge - static showcase entries
+ * don't have this field and are treated as non-live.
  */
-export default function WinProbabilityReplay({ gamesData }) {
-  const gameIds = useMemo(() => Object.keys(gamesData || {}), [gamesData]);
+export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 20000 }) {
+  const [liveGames, setLiveGames] = useState({});
+
+  useEffect(() => {
+    if (!liveUrl) return undefined;
+    let cancelled = false;
+    const fetchLive = async () => {
+      try {
+        const res = await fetch(liveUrl, { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setLiveGames(data);
+      } catch {
+        // Transient network/poll errors are expected; just retry next tick.
+      }
+    };
+    fetchLive();
+    const id = setInterval(fetchLive, livePollMs);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [liveUrl, livePollMs]);
+
+  const mergedGames = useMemo(() => ({ ...(gamesData || {}), ...liveGames }), [gamesData, liveGames]);
+  const gameIds = useMemo(() => Object.keys(mergedGames), [mergedGames]);
   const [currentGameId, setCurrentGameId] = useState(gameIds[0] || null);
   const [playIndex, setPlayIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const timerRef = useRef(null);
   const svgRef = useRef(null);
+  const atTipRef = useRef(true);
+  const prevNRef = useRef(0);
 
-  const game = currentGameId ? gamesData[currentGameId] : null;
+  // If nothing was selected at mount (no static games passed in - e.g. a
+  // live-only page) and a live game shows up, default to it.
+  useEffect(() => {
+    if (currentGameId) return;
+    const liveIds = Object.keys(liveGames);
+    if (liveIds.length) setCurrentGameId(liveIds[0]);
+  }, [liveGames, currentGameId]);
+
+  const game = currentGameId ? mergedGames[currentGameId] : null;
   const plays = game?.plays || [];
   const n = plays.length;
+  const isLive = Boolean(game?.status) && game.status !== "STATUS_FINAL";
+
+  useEffect(() => {
+    atTipRef.current = playIndex >= n - 1;
+  }, [playIndex, n]);
+
+  // New plays arrived for the game currently on screen: only auto-advance
+  // to the latest play if the viewer was already caught up, so scrubbing
+  // back through history to review a play isn't yanked out from under them.
+  useEffect(() => {
+    if (n > prevNRef.current && atTipRef.current) {
+      setPlayIndex(n - 1);
+    }
+    prevNRef.current = n;
+  }, [n]);
 
   const points = useMemo(() => {
     if (n === 0) return [];
@@ -97,6 +159,8 @@ export default function WinProbabilityReplay({ gamesData }) {
       stopPlay();
       setCurrentGameId(id);
       setPlayIndex(0);
+      atTipRef.current = true;
+      prevNRef.current = 0;
     },
     [stopPlay]
   );
@@ -169,8 +233,9 @@ export default function WinProbabilityReplay({ gamesData }) {
     <div className="wp-replay">
       <div className="wp-picker" role="group" aria-label="Select a game to replay">
         {gameIds.map((id) => {
-          const g = gamesData[id];
+          const g = mergedGames[id];
           const [, ...ctx] = (g.label || "").split(" — ");
+          const gIsLive = Boolean(g.status) && g.status !== "STATUS_FINAL";
           return (
             <button
               key={id}
@@ -179,6 +244,7 @@ export default function WinProbabilityReplay({ gamesData }) {
               aria-pressed={id === currentGameId}
             >
               <div className="wp-matchup">
+                {gIsLive && <span className="wp-live-dot" aria-hidden="true" />}
                 {g.away} @ {g.home}
               </div>
               <div className="wp-matchup-sub">{ctx[ctx.length - 1] || ""}</div>
@@ -190,7 +256,10 @@ export default function WinProbabilityReplay({ gamesData }) {
       <div className="wp-panel">
         <div className="wp-panel-content" key={currentGameId}>
           <div className="wp-panel-header">
-            <div className="wp-game-title">{titlePart}</div>
+            <div className="wp-game-title">
+              {isLive && <span className="wp-live-dot" aria-hidden="true" />}
+              {titlePart}
+            </div>
             <div className="wp-game-context">{contextParts.join(" — ")}</div>
           </div>
 
