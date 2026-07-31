@@ -107,6 +107,21 @@ def _ordered_plays(summary):
     return plays
 
 
+def _format_field_position(yardline_100, posteam, defteam):
+    """Broadcast-style field position (e.g. "MIN 35") from yardline_100
+    (distance from the opponent's end zone). Matches nflverse's own `yrdln`
+    convention: below midfield it's on the defense's side, above midfield
+    it's on the offense's own side, and exactly 50 has no team prefix."""
+    if yardline_100 is None:
+        return None
+    yardline_100 = round(yardline_100)
+    if yardline_100 == 50:
+        return "50"
+    if yardline_100 < 50:
+        return f"{defteam} {yardline_100}"
+    return f"{posteam} {100 - yardline_100}"
+
+
 def _clock_seconds(play):
     mm, ss = play["clock"]["displayValue"].split(":")
     return int(mm) * 60 + int(ss)
@@ -211,6 +226,9 @@ def get_game_rows(event_id):
                     # play, same "before" convention as score_differential above.
                     "home_score": running_score.get(home["team"]["id"], 0),
                     "away_score": running_score.get(away["team"]["id"], 0),
+                    "field_position": _format_field_position(
+                        start.get("yardsToEndzone"), pos_info.get("abbr"), def_info.get("abbr")
+                    ),
                 })
 
         # Post-play cumulative score becomes the "before" score for the next play.

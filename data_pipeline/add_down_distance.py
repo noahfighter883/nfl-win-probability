@@ -1,9 +1,13 @@
 """
-One-off augmentation: adds down + distance and the running score to each
-play in the showcase frontend/games_data.json, and restores the full
-(untruncated) play description - the stored `desc` was truncated to 130
-chars by whatever out-of-band process originally generated this file. Win
-probabilities are left untouched (those aren't recomputed here).
+One-off augmentation: adds down + distance, field position, and the running
+score to each play in the showcase frontend/games_data.json, and restores
+the full (untruncated) play description - the stored `desc` was truncated
+to 130 chars by whatever out-of-band process originally generated this
+file. Win probabilities are left untouched (those aren't recomputed here).
+
+Field position uses nflverse's own `yrdln` column directly (e.g. "MIN 35"),
+rather than re-deriving it from yardline_100 - it's already in exactly the
+broadcast-style format we want to show.
 
 Score is the score *after* this play resolves (posteam/defteam_score_post,
 remapped to home/away) - deliberately the "after" convention, unlike
@@ -46,16 +50,17 @@ def augment_game(game_id, plays):
         cand = cand[cand["desc"].str.startswith(desc[:DESC_PREFIX_LEN], na=False)]
         if len(cand) == 0:
             unmatched += 1
-            augmented.append([qtr, secs, wp, desc, None, None])
+            augmented.append([qtr, secs, wp, desc, None, None, None, None, None])
             continue
         row = cand.iloc[0]
         down = int(row["down"]) if pd.notna(row["down"]) else None
         ydstogo = int(row["ydstogo"]) if pd.notna(row["ydstogo"]) else None
+        field_pos = row["yrdln"] if pd.notna(row["yrdln"]) else None
         is_home_posteam = row["posteam"] == row["home_team"]
         home_score = row["posteam_score_post"] if is_home_posteam else row["defteam_score_post"]
         away_score = row["defteam_score_post"] if is_home_posteam else row["posteam_score_post"]
         augmented.append([
-            qtr, secs, wp, row["desc"], down, ydstogo,
+            qtr, secs, wp, row["desc"], down, ydstogo, field_pos,
             int(home_score) if pd.notna(home_score) else None,
             int(away_score) if pd.notna(away_score) else None,
         ])

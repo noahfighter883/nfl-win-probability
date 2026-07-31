@@ -70,11 +70,11 @@ function formatClock(secsLeft) {
  *     label: string,       // e.g. "Vikings 39, Colts 36 (OT) — Dec 17, 2022 — ..."
  *     home: "MIN",
  *     away: "IND",
- *     plays: [ [qtr, secondsRemaining, homeWinProbPct, playDescription, down, ydstogo, homeScore, awayScore], ... ]
- *     // down/ydstogo/homeScore/awayScore are optional (older data may omit
- *     // them, or a play may have no meaningful down, e.g. a kickoff) -
- *     // falls back to hiding that part of the readout rather than showing
- *     // "undefined & undefined".
+ *     plays: [ [qtr, secondsRemaining, homeWinProbPct, playDescription, down, ydstogo, fieldPosition, homeScore, awayScore], ... ]
+ *     // down/ydstogo/fieldPosition/homeScore/awayScore are optional (older
+ *     // data may omit them, or a play may have no meaningful down, e.g. a
+ *     // kickoff) - falls back to hiding that part of the readout rather
+ *     // than showing "undefined & undefined".
  *   }
  * }
  *
@@ -248,8 +248,10 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
   if (!game) return null;
 
   const current = plays[playIndex];
-  const [qtr, secsLeft, homeWp, desc, down, ydstogo, homeScore, awayScore] = current || [1, 3600, 50, ""];
-  const downDistanceText = formatDownDistance(down, ydstogo);
+  const [qtr, secsLeft, homeWp, desc, down, ydstogo, fieldPosition, homeScore, awayScore] =
+    current || [1, 3600, 50, ""];
+  let downDistanceText = formatDownDistance(down, ydstogo);
+  if (downDistanceText && fieldPosition) downDistanceText += ` at ${fieldPosition}`;
   const hasScore = homeScore !== undefined && awayScore !== undefined && homeScore !== null && awayScore !== null;
   const homeColor = TEAM_COLORS[game.home] || GOLD;
   const awayColor = TEAM_COLORS[game.away] || "#5FA8D3";

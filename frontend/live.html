@@ -582,7 +582,7 @@ function updateReadout(idx) {
   const g = GAMES[currentGameId];
   if (!g || !g.plays.length) return;
   const p = g.plays[idx];
-  const [q, secsLeft, homeWp, desc, down, ydstogo, homeScore, awayScore] = p;
+  const [q, secsLeft, homeWp, desc, down, ydstogo, fieldPosition, homeScore, awayScore] = p;
   const dot = document.getElementById('scrubDot');
   const n = g.plays.length;
   const x = n > 1 ? (idx / (n - 1)) * 1000 : 0;
@@ -607,7 +607,8 @@ function updateReadout(idx) {
 
   const descEl = document.getElementById('descValue');
   descEl.textContent = '';
-  const ddText = formatDownDistance(down, ydstogo);
+  let ddText = formatDownDistance(down, ydstogo);
+  if (ddText && fieldPosition) ddText += ` at ${fieldPosition}`;
   if (ddText) {
     const ddSpan = document.createElement('span');
     ddSpan.className = 'down-distance';
