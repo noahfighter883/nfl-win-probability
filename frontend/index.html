@@ -332,15 +332,19 @@
 // Covers all 32 teams so the live tracker can show any matchup, not just
 // the 6 teams in the showcase replays. WAS/WSH both map to Washington -
 // nflverse (historical showcase data) uses "WAS", ESPN (live feed) uses "WSH".
+// Lightened from each team's true brand color so every one is readable as
+// text/fills on our dark theme - many NFL primaries (navy, black) fail
+// WCAG AA contrast here at full darkness (HSL lightness raised per-color
+// until contrast >= 4.5:1 against the panel background, hue preserved).
 const TEAM_COLORS = {
-  ARI: '#97233F', ATL: '#A71930', BAL: '#241773', BUF: '#00338D',
-  CAR: '#0085CA', CHI: '#0B162A', CIN: '#FB4F14', CLE: '#311D00',
-  DAL: '#041E42', DEN: '#002244', DET: '#0076B6', GB: '#203731',
-  HOU: '#03202F', IND: '#002C5F', JAX: '#101820', KC: '#E31837',
-  LAC: '#0080C6', LAR: '#003594', LV: '#A5ACAF', MIA: '#008E97',
-  MIN: '#4F2683', NE: '#002244', NO: '#D3BC8D', NYG: '#0B2265',
-  NYJ: '#125740', PHI: '#004C54', PIT: '#FFB612', SEA: '#69BE28',
-  SF: '#AA0000', TB: '#D50A0A', TEN: '#4B92DB', WAS: '#5A1414', WSH: '#5A1414'
+  ARI: '#da5e7b', ATL: '#e6566e', BAL: '#8a7be5', BUF: '#3d83ff',
+  CAR: '#00a8ff', CHI: '#5d88d5', CIN: '#FB4F14', CLE: '#ff9700',
+  DAL: '#3a88f3', DEN: '#0f87ff', DET: '#00a5ff', GB: '#53ac95',
+  HOU: '#0fa3f0', IND: '#1f87ff', JAX: '#648cb4', KC: '#ec5068',
+  LAC: '#00a5ff', LAR: '#3d83ff', LV: '#A5ACAF', MIA: '#00f0ff',
+  MIN: '#a075d7', NE: '#0f87ff', NO: '#D3BC8D', NYG: '#5e83ed',
+  NYJ: '#2cd39b', PHI: '#00e7ff', PIT: '#FFB612', SEA: '#69BE28',
+  SF: '#ff3838', TB: '#f64646', TEN: '#4B92DB', WAS: '#dc6060', WSH: '#dc6060'
 };
 const TEAM_NAMES = {
   ARI: 'Cardinals', ATL: 'Falcons', BAL: 'Ravens', BUF: 'Bills',
