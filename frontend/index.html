@@ -190,6 +190,18 @@
     transition: border-color 0.15s ease, transform 0.15s ease;
   }
   .page-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .page-card.reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .page-card.reveal.in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .page-card.reveal { opacity: 1; transform: none; transition: none; }
+  }
   .page-card-thumb {
     width: 100%;
     aspect-ratio: 16 / 9;
@@ -279,21 +291,21 @@
   <section>
     <h2>Explore</h2>
     <div class="page-grid">
-      <a class="page-card" href="./replays.html">
+      <a class="page-card reveal" href="./replays.html">
         <img class="page-card-thumb" src="./images/thumb-replays.webp" alt="Historical Replays screenshot">
         <div class="page-card-body">
           <h3>Historical replays</h3>
           <p>Scrub play-by-play through five of the most dramatic games from the last four seasons, watching win probability swing in real time.</p>
         </div>
       </a>
-      <a class="page-card" href="./live.html">
+      <a class="page-card reveal" href="./live.html">
         <img class="page-card-thumb" src="./images/thumb-live.png" alt="Live Tracker screenshot">
         <div class="page-card-body">
           <h3>Live tracker</h3>
           <p>The same in-game model, scoring real 2026-season games as they're actually being played from ESPN's live feed.</p>
         </div>
       </a>
-      <a class="page-card" href="./season.html">
+      <a class="page-card reveal" href="./season.html">
         <img class="page-card-thumb" src="./images/thumb-season.png" alt="Season Predictions screenshot">
         <div class="page-card-body">
           <h3>Season predictions</h3>
@@ -305,5 +317,20 @@
 
   <p class="footnote">Both models, their training pipelines, and their evaluation results are open in the repo &mdash; including the parts that didn't work (see the "left out of the shipped model" note above). Nothing here is optimized to look better than it actually performed.</p>
 </div>
+<script>
+  const revealCards = document.querySelectorAll('.page-card.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.2, rootMargin: '0px 0px -40px 0px' });
+  revealCards.forEach((card, i) => {
+    card.style.transitionDelay = `${i * 90}ms`;
+    observer.observe(card);
+  });
+</script>
 </body>
 </html>
