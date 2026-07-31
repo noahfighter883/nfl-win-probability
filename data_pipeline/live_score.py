@@ -23,6 +23,7 @@ exist anywhere else in the project.
 import argparse
 import json
 import pickle
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -30,6 +31,14 @@ import xgboost as xgb
 
 import live_feed
 from features import engineer_features, FEATURE_COLS
+
+# poll_live_games() persists across runs (merging newly-live games into
+# whatever was already there), since ESPN's "live" filter stops returning a
+# game the moment it goes final - without this, a finished game would just
+# vanish instead of staying visible as a frozen final result. But that same
+# persistence means the file grows forever over a season unless old entries
+# get pruned; this bounds it to roughly the current week's games.
+MAX_GAME_AGE = timedelta(days=2)
 
 # data_pipeline/model/ is committed to the repo (unlike data_pipeline/data/,
 # which is gitignored/regenerated locally) so CI can score live plays
@@ -108,7 +117,21 @@ def score_event(event_id, model, feature_cols, calibrator):
         # frontend can show a LIVE indicator without parsing the label text.
         "status": meta.get("status"),
         "plays": plays,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
     }, meta
+
+
+def _prune_stale(games_data, max_age=MAX_GAME_AGE):
+    now = datetime.now(timezone.utc)
+    kept = {}
+    for game_id, entry in games_data.items():
+        updated_at = entry.get("updated_at")
+        if not updated_at:
+            continue  # entry predates this field - safe to drop rather than keep forever
+        age = now - datetime.fromisoformat(updated_at)
+        if age <= max_age:
+            kept[game_id] = entry
+    return kept
 
 
 def poll_live_games(out_path, model_dir=DEFAULT_MODEL_DIR):
@@ -119,6 +142,7 @@ def poll_live_games(out_path, model_dir=DEFAULT_MODEL_DIR):
     if Path(out_path).exists():
         with open(out_path) as f:
             games_data = json.load(f)
+    games_data = _prune_stale(games_data)
 
     for g in live:
         entry, meta = score_event(g["event_id"], model, feature_cols, calibrator)

@@ -49,6 +49,29 @@ jobs:
         working-directory: data_pipeline
         run: pip install -r requirements.txt
 
+      - name: Fetch previously-published live data (if any)
+        run: |
+          # Each run starts from a fresh checkout of main, which never
+          # contains live_games_data.json (that only ever lives on the
+          # live-data branch below). live_score.py merges newly-live games
+          # into whatever's already at --out and prunes anything older than
+          # 2 days (see MAX_GAME_AGE in live_score.py) - without seeding it
+          # here first, that merge/prune logic has nothing to work with, and
+          # a game would vanish from the published output within 5 minutes
+          # of going final instead of staying visible as a frozen result.
+          git fetch origin live-data 2>/dev/null || true
+          if git show origin/live-data:live_games_data.json > data_pipeline/live_games_data.json 2>/dev/null; then
+            echo "Seeded from live-data branch."
+          else
+            # `>` truncates/creates the file even when the command on its
+            # left fails, leaving a 0-byte file that would crash
+            # live_score.py's json.load() - remove it so the script sees
+            # "no prior file" (which it already handles) instead of "empty
+            # invalid JSON".
+            rm -f data_pipeline/live_games_data.json
+            echo "No previously-published data (first run, or branch doesn't exist yet)."
+          fi
+
       - name: Score live games
         working-directory: data_pipeline
         run: python live_score.py --model-dir model --out live_games_data.json

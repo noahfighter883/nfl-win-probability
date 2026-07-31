@@ -72,21 +72,31 @@ def next_upcoming_week(games_df):
 
 def score_week(games_df, season, week, model, feature_cols, calibrator, meta):
     """
-    Scores every game in the given (season, week). Elo/QB state is computed
-    across ALL completed games plus this week's games appended at the end
-    (still unplayed - compute_pregame_state looks up their rating without
-    performing an update), so ratings reflect every result so far this
-    season without needing a separate frozen ratings snapshot.
+    Scores every *unplayed* game in the given (season, week). NFL weeks
+    span several days (Thu/Sun/Mon), so by the time this runs some of the
+    week's games may already be final - those are left to completed_games()
+    below and excluded here, both so they don't get a stale "prediction"
+    for a game whose outcome is already known, and so they aren't double-
+    counted in the Elo walk (they'd otherwise appear once via the
+    completed-games update path and once via this unplayed-games lookup
+    path). Elo/QB state is computed across every completed game (including
+    any of this week's games already played) plus this week's remaining
+    unplayed games appended at the end (compute_pregame_state looks up
+    their rating without performing an update, since there's no result
+    yet) - so ratings reflect every result so far this season without
+    needing a separate frozen ratings snapshot.
     """
     completed = completed_games(games_df)
-    week_mask = (games_df["season"] == season) & (games_df["week"] == week) & (games_df["game_type"] == "REG")
+    week_mask = ((games_df["season"] == season) & (games_df["week"] == week) &
+                 (games_df["game_type"] == "REG") & games_df["home_score"].isna())
     week_games = games_df[week_mask].copy()
 
     combined = pd.concat([completed, week_games], ignore_index=True)
     combined = combined.sort_values(["season", "week", "gameday"]).reset_index(drop=True)
     state = compute_pregame_state(combined, hfa=meta["hfa"])
 
-    this_week = state[(state["season"] == season) & (state["week"] == week) & (state["game_type"] == "REG")].copy()
+    this_week = state[(state["season"] == season) & (state["week"] == week) &
+                       (state["game_type"] == "REG") & state["home_score"].isna()].copy()
     features, meta_cols = engineer_features(this_week)
 
     pred_margin = model.predict(features[feature_cols])

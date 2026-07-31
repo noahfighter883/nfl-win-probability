@@ -74,13 +74,20 @@ can't drive anything live. Instead:
   engineering used for training, scores them with the already-trained
   model (`data_pipeline/model/` — committed to the repo, not retrained per
   poll), and writes a `live_games_data.json` in the same shape as the
-  showcase `games_data.json` above.
+  showcase `games_data.json` above. It merges into whatever's already at
+  `--out` rather than overwriting, and prunes anything older than 2 days —
+  since ESPN's live-event list stops returning a game the instant it goes
+  final, this is what keeps a just-finished game visible as a frozen result
+  instead of disappearing the moment the next poll runs.
 - `.github/workflows/live-poll.yml` runs that on a schedule during NFL
   windows (Thu/Sun/Mon) and publishes the result to a `live-data` branch.
   Point a static host (e.g. GitHub Pages) at that branch and set `DATA_URL`
   in `frontend/live.html` to it — or run `live_score.py` yourself on any
   always-on server and serve the JSON however you like; the workflow is
-  one option, not a requirement.
+  one option, not a requirement. Each run starts from a fresh checkout, so
+  the workflow fetches whatever was last published on `live-data` first and
+  seeds it into `live_score.py`'s `--out` path before scoring — without
+  that, the merge/prune behavior above would have nothing to merge with.
 - `frontend/live.html` and `WinProbabilityReplay.jsx`'s `liveUrl` prop poll
   that JSON and render the same replay UI, with a pulsing LIVE badge on
   in-progress games.
