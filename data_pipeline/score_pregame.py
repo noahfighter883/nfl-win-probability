@@ -17,7 +17,7 @@ calibrated win probability for each, writing season_predictions.json:
     "games": [
       {"game_id": "...", "gameday": "...", "home": "SEA", "away": "NE",
        "home_win_prob": 66.6, "predicted_margin": 4.2,
-       "vegas_spread_line": 3.5, "vegas_home_moneyline": -198}
+       "vegas_spread_line": 3.5, "vegas_home_moneyline": -198, "vegas_away_moneyline": 164}
     ]
   }
 """
@@ -113,9 +113,11 @@ def score_week(games_df, season, week, model, feature_cols, calibrator, meta):
             "predicted_margin": round(float(pred_margin[i]), 1),
         }
         spread = this_week.iloc[i]["spread_line"]
-        ml = this_week.iloc[i]["home_moneyline"]
+        home_ml = this_week.iloc[i]["home_moneyline"]
+        away_ml = this_week.iloc[i]["away_moneyline"]
         entry["vegas_spread_line"] = float(spread) if pd.notna(spread) else None
-        entry["vegas_home_moneyline"] = float(ml) if pd.notna(ml) else None
+        entry["vegas_home_moneyline"] = float(home_ml) if pd.notna(home_ml) else None
+        entry["vegas_away_moneyline"] = float(away_ml) if pd.notna(away_ml) else None
         results.append(entry)
     return results
 

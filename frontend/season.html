@@ -224,6 +224,11 @@
     margin-bottom: 3px;
   }
   .compare-value { font-weight: 600; }
+  .compare-subvalue {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
   .empty-state {
     color: var(--text-secondary);
     font-size: 14px;
@@ -336,6 +341,21 @@ function favoriteText(team, otherTeam, margin, line) {
   return `${favorite} ${Math.abs(line).toFixed(1)}`;
 }
 
+// American-odds implied probability, then de-vigged (normalized so both
+// sides sum to 100%) - matches train_pregame_model.py's devig_moneyline_prob,
+// the same baseline the model is benchmarked against.
+function impliedProb(moneyline) {
+  return moneyline > 0 ? 100 / (moneyline + 100) : (-moneyline) / (-moneyline + 100);
+}
+function devigHomeWinProb(homeMl, awayMl) {
+  const pHome = impliedProb(homeMl);
+  const pAway = impliedProb(awayMl);
+  return pHome / (pHome + pAway);
+}
+function formatMoneyline(ml) {
+  return ml > 0 ? `+${ml.toFixed(0)}` : ml.toFixed(0);
+}
+
 function renderGame(g) {
   const homeColor = TEAM_COLORS[g.home] || GOLD;
   const awayColor = TEAM_COLORS[g.away] || '#5FA8D3';
@@ -411,9 +431,33 @@ function renderGame(g) {
   vegasCol.appendChild(vegasLabel);
   vegasCol.appendChild(vegasValue);
 
+  const mlCol = document.createElement('div');
+  mlCol.className = 'compare-col';
+  const mlLabel = document.createElement('div');
+  mlLabel.className = 'compare-label';
+  mlLabel.textContent = 'Vegas moneyline';
+  const mlValue = document.createElement('div');
+  mlValue.className = 'compare-value';
+  mlCol.appendChild(mlLabel);
+  mlCol.appendChild(mlValue);
+  if (g.vegas_home_moneyline == null || g.vegas_away_moneyline == null) {
+    mlValue.textContent = 'Not yet posted';
+  } else {
+    const homeProb = devigHomeWinProb(g.vegas_home_moneyline, g.vegas_away_moneyline);
+    const mlFavorite = homeProb >= 0.5 ? g.home : g.away;
+    const mlFavoriteLine = homeProb >= 0.5 ? g.vegas_home_moneyline : g.vegas_away_moneyline;
+    const mlFavoritePct = (homeProb >= 0.5 ? homeProb : 1 - homeProb) * 100;
+    mlValue.textContent = `${mlFavorite} ${formatMoneyline(mlFavoriteLine)}`;
+    const mlSub = document.createElement('div');
+    mlSub.className = 'compare-subvalue';
+    mlSub.textContent = `${mlFavoritePct.toFixed(1)}% implied (de-vigged)`;
+    mlCol.appendChild(mlSub);
+  }
+
   compare.appendChild(wpCol);
   compare.appendChild(spreadCol);
   compare.appendChild(vegasCol);
+  compare.appendChild(mlCol);
   card.appendChild(compare);
 
   const labels = document.createElement('div');
