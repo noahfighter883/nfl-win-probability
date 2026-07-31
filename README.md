@@ -80,14 +80,16 @@ can't drive anything live. Instead:
   final, this is what keeps a just-finished game visible as a frozen result
   instead of disappearing the moment the next poll runs.
 - `.github/workflows/live-poll.yml` runs that on a schedule during NFL
-  windows (Thu/Sun/Mon) and publishes the result to a `live-data` branch.
-  Point a static host (e.g. GitHub Pages) at that branch and set `DATA_URL`
-  in `frontend/live.html` to it — or run `live_score.py` yourself on any
-  always-on server and serve the JSON however you like; the workflow is
-  one option, not a requirement. Each run starts from a fresh checkout, so
-  the workflow fetches whatever was last published on `live-data` first and
-  seeds it into `live_score.py`'s `--out` path before scoring — without
-  that, the merge/prune behavior above would have nothing to merge with.
+  windows (Thu/Sun/Mon) and publishes the result to a `live-data` branch,
+  served via GitHub Pages (repo Settings → Pages → source: `live-data`) at
+  `https://<user>.github.io/<repo>/live_games_data.json` — `DATA_URL` in
+  `frontend/live.html` already points there. Swap it for wherever you'd
+  rather host the JSON if you'd prefer running `live_score.py` on your own
+  always-on server instead; the workflow is one option, not a requirement.
+  Each run starts from a fresh checkout, so the workflow fetches whatever
+  was last published on `live-data` first and seeds it into
+  `live_score.py`'s `--out` path before scoring — without that, the
+  merge/prune behavior above would have nothing to merge with.
 - `frontend/live.html` and `WinProbabilityReplay.jsx`'s `liveUrl` prop poll
   that JSON and render the same replay UI, with a pulsing LIVE badge on
   in-progress games.
@@ -164,9 +166,9 @@ into `data_pipeline/pregame_model/` (committed) to ship a retrained model,
 same pattern as `data_pipeline/model/` above.
 - `.github/workflows/pregame-poll.yml` runs that daily (lines/rest data
   don't move nearly as fast as a live game) and publishes to the same
-  `live-data` branch as the live tracker. `frontend/season.html` polls it and
-  shows the model's prediction directly alongside the Vegas line for
-  comparison.
+  `live-data` branch as the live tracker, served the same way via GitHub
+  Pages. `frontend/season.html` polls it and shows the model's prediction
+  directly alongside the Vegas line for comparison.
 
 ### Season predictions limitations
 

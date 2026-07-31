@@ -289,10 +289,10 @@ const TEAM_NAMES = {
   SF: '49ers', TB: 'Buccaneers', TEN: 'Titans', WAS: 'Commanders', WSH: 'Commanders'
 };
 
-// Wherever data_pipeline/live_score.py's output gets published (see
-// .github/workflows/live-poll.yml). Relative by default so this works when
-// the poller writes into the same served directory as this page.
-const DATA_URL = 'live_games_data.json';
+// Published by .github/workflows/live-poll.yml to the live-data branch,
+// served via GitHub Pages (repo Settings -> Pages -> source: live-data).
+// If you host the JSON elsewhere instead, just point this at that URL.
+const DATA_URL = 'https://noahfighter883.github.io/nfl-win-probability/live_games_data.json';
 const POLL_MS = 20000;
 
 let GAMES = {};

@@ -201,9 +201,10 @@ const TEAM_NAMES = {
 };
 const GOLD = '#E8B94A';
 
-// Wherever data_pipeline/score_pregame.py's output gets published (see
-// .github/workflows/pregame-poll.yml).
-const DATA_URL = 'season_predictions.json';
+// Published by .github/workflows/pregame-poll.yml to the live-data branch,
+// served via GitHub Pages (repo Settings -> Pages -> source: live-data).
+// If you host the JSON elsewhere instead, just point this at that URL.
+const DATA_URL = 'https://noahfighter883.github.io/nfl-win-probability/season_predictions.json';
 
 function formatGameday(iso) {
   const d = new Date(iso + 'T00:00:00Z');
