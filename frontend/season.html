@@ -178,6 +178,18 @@
     border-radius: 10px;
     padding: 16px 18px;
   }
+  .game-card.reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .game-card.reveal.in-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .game-card.reveal { opacity: 1; transform: none; transition: none; }
+  }
   .game-row {
     display: flex;
     justify-content: space-between;
@@ -368,7 +380,7 @@ function renderGame(g) {
   const leaderColor = TEAM_COLORS[leader] || GOLD;
 
   const card = document.createElement('div');
-  card.className = 'game-card';
+  card.className = 'game-card reveal';
 
   const row = document.createElement('div');
   row.className = 'game-row';
@@ -455,9 +467,9 @@ function renderGame(g) {
   }
 
   compare.appendChild(wpCol);
+  compare.appendChild(mlCol);
   compare.appendChild(spreadCol);
   compare.appendChild(vegasCol);
-  compare.appendChild(mlCol);
   card.appendChild(compare);
 
   const labels = document.createElement('div');
@@ -479,6 +491,7 @@ function renderGame(g) {
 }
 
 let currentGames = [];
+let revealObserver = null;
 
 // Games without a posted vegas_spread_line have no meaningful "difference
 // from Vegas" - pushed to the end regardless of sort direction rather than
@@ -516,7 +529,24 @@ function renderGames() {
   gamesEl.innerHTML = '';
   const mode = document.getElementById('sortSelect').value;
   const sorted = sortGames(currentGames, mode);
-  sorted.forEach(g => gamesEl.appendChild(renderGame(g)));
+  const cards = sorted.map(g => renderGame(g));
+  cards.forEach(c => gamesEl.appendChild(c));
+
+  // Re-created on every render (sort changes swap out the DOM nodes
+  // entirely) so it never holds stale references to removed cards.
+  if (revealObserver) revealObserver.disconnect();
+  revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+  cards.forEach((card, i) => {
+    card.style.transitionDelay = `${Math.min(i, 6) * 60}ms`;
+    revealObserver.observe(card);
+  });
 }
 
 async function load() {
