@@ -302,6 +302,12 @@
     outline: 2px solid var(--gold);
     outline-offset: 2px;
   }
+  @media (max-width: 480px) {
+    /* Side-by-side squeezes the play description into a ~140px column
+       that wraps one word per line - stack instead so it gets full width. */
+    .readout { flex-direction: column; gap: 12px; }
+    .readout-stat { min-width: 0; }
+  }
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
     .live-dot { animation: none; }

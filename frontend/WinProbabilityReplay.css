@@ -245,6 +245,13 @@
   outline-offset: 2px;
 }
 
+@media (max-width: 480px) {
+  /* Side-by-side squeezes the play description into a ~140px column that
+     wraps one word per line - stack instead so it gets full width. */
+  .wp-readout { flex-direction: column; gap: 12px; }
+  .wp-readout-stat { min-width: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wp-replay * {
     transition-duration: 0.01ms !important;
