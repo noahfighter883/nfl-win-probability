@@ -1,8 +1,10 @@
 # NFL Win Probability Model
 
-A win probability model trained from scratch on play-by-play NFL data, plus
-an interactive replay of five of the most dramatic games of the last four
-seasons. [Try it Out](https://nfl-win-probability-5lzczwh2z-noahfight123.vercel.app/) or view the [Case Study](https://docs.google.com/document/d/1mI910ucZKKs1_Oqxx9JjS8KDDRfjO1MkZlQfbuedTwU/edit?usp=sharing).
+Two win probability models trained from scratch: one scores live NFL game
+state play by play, the other predicts a game's winner and spread before
+kickoff. [Try it Out](https://nfl-win-probability-5lzczwh2z-noahfight123.vercel.app/) (opens on a landing page explaining both and linking to
+the historical replay, live tracker, and season predictions) or view the
+[Case Study](https://docs.google.com/document/d/1mI910ucZKKs1_Oqxx9JjS8KDDRfjO1MkZlQfbuedTwU/edit?usp=sharing).
 
 ## What this is
 
@@ -21,8 +23,8 @@ team on offense goes on to win. It's trained on ~166k plays from the
 data_pipeline/    Python scripts: build the training dataset, train + calibrate the model,
                   score live games (see "Live tracker" below), and predict upcoming games
                   before kickoff (see "Season predictions" below)
-frontend/         React component + standalone HTML demos for the historical replay,
-                  the live tracker, and season predictions
+frontend/         React component + standalone HTML pages: a landing page (index.html),
+                  and the historical replay, live tracker, and season predictions demos
 data/             Extracted win-probability timelines for the showcase games
 .github/workflows/  Scheduled jobs that poll live games and refresh season predictions
 ```
@@ -56,7 +58,14 @@ copying from `data/` after retraining.
 `frontend/WinProbabilityReplay.jsx` is a self-contained React component
 (no charting library — hand-built SVG) that replays five historic games
 play by play against their model-computed win probability curve. See
-`frontend/index.html` for a framework-free demo of the same thing.
+`frontend/replays.html` for a framework-free demo of the same thing.
+
+`frontend/index.html` is the site's landing page (served at the domain
+root) — a brief explanation of how the in-game and pregame models are each
+calculated, and a clickable thumbnail linking to each of the three views
+(`replays.html`, `live.html`, `season.html`). Thumbnails live in
+`frontend/images/`; the live/season ones are real screenshots (captured
+via headless Chrome), not mockups.
 
 ## Live tracker
 

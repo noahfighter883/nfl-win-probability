@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Win Probability Replay</title>
-<meta name="description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<title>NFL Win Probability</title>
+<meta name="description" content="Two self-trained NFL win probability models, published with their honest results: one scores live game state play by play, the other predicts games before kickoff against the betting line.">
 <meta name="theme-color" content="#0A0E14">
 <meta property="og:type" content="website">
-<meta property="og:title" content="NFL Win Probability Replay">
-<meta property="og:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta property="og:title" content="NFL Win Probability">
+<meta property="og:description" content="Two self-trained NFL win probability models, published with their honest results: one scores live game state play by play, the other predicts games before kickoff against the betting line.">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="NFL Win Probability Replay">
-<meta name="twitter:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta name="twitter:title" content="NFL Win Probability">
+<meta name="twitter:description" content="Two self-trained NFL win probability models, published with their honest results.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
     font-family: 'Inter', system-ui, sans-serif;
     padding: 32px 24px 64px;
   }
-  .wrap { max-width: 920px; margin: 0 auto; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
   .topnav {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -43,7 +43,7 @@
     border: 1px solid var(--border);
     border-radius: 999px;
     padding: 10px 22px;
-    margin-bottom: 32px;
+    margin-bottom: 40px;
   }
   .topnav-brand {
     justify-self: start;
@@ -85,12 +85,13 @@
     transition: color 0.15s ease;
   }
   .topnav-links a:hover { color: var(--text); }
-  .topnav-links a.active { color: var(--gold); }
   .topnav-right { justify-self: end; }
   @media (max-width: 560px) {
     .topnav { grid-template-columns: 1fr; justify-items: center; border-radius: 20px; row-gap: 10px; padding: 16px 18px; }
     .topnav-brand, .topnav-links { justify-self: center; }
   }
+
+  .hero { max-width: 680px; margin-bottom: 48px; }
   .eyebrow {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
@@ -99,174 +100,130 @@
     color: var(--gold);
     margin: 0 0 8px;
   }
-  .eyebrow a { color: inherit; }
   h1 {
     font-family: 'Archivo Narrow', sans-serif;
     font-weight: 700;
-    font-size: 34px;
+    font-size: 40px;
     letter-spacing: 0.01em;
-    margin: 0 0 6px;
+    margin: 0 0 12px;
     text-transform: uppercase;
   }
-  .sub {
+  .hero p {
     color: var(--text-secondary);
-    font-size: 14px;
-    margin: 0 0 28px;
-    max-width: 640px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0;
   }
-  .game-picker {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 24px;
-  }
-  .game-btn {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    padding: 10px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: left;
-    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-  }
-  .game-btn:hover { border-color: #3A445C; transform: translateY(-1px); }
-  .game-btn:active { transform: translateY(0); }
-  .game-btn.active {
-    border-color: var(--gold);
-    color: var(--text);
-  }
-  .game-btn .matchup {
+
+  h2 {
     font-family: 'Archivo Narrow', sans-serif;
     font-weight: 700;
-    font-size: 15px;
-    color: var(--text);
+    font-size: 20px;
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    margin: 0 0 16px;
   }
-  .panel {
+  section { margin-bottom: 48px; }
+
+  .model-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) { .model-grid { grid-template-columns: 1fr; } }
+  .model-card {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 24px;
+    padding: 22px;
   }
-  .panel-content {
-    animation: wp-fade-in 0.25s ease;
-  }
-  @keyframes wp-fade-in {
-    from { opacity: 0; transform: translateY(2px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 4px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .game-title {
-    font-family: 'Archivo Narrow', sans-serif;
-    font-weight: 700;
-    font-size: 18px;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-  }
-  .game-context {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .chart-area { position: relative; margin: 20px 0 8px; }
-  svg { display: block; width: 100%; height: auto; cursor: crosshair; }
-  .team-labels {
-    display: flex;
-    justify-content: space-between;
+  .model-card .kind {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
-    color: var(--text-secondary);
-    margin-top: -4px;
-  }
-  .readout {
-    margin-top: 20px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-  }
-  .readout-stat { flex-shrink: 0; min-width: 96px; }
-  .readout-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
   }
-  .readout-value {
+  .model-card h3 {
     font-family: 'Archivo Narrow', sans-serif;
     font-weight: 700;
-    font-size: 26px;
+    font-size: 19px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
   }
-  .readout-time {
-    font-family: 'JetBrains Mono', monospace;
+  .model-card ul {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+  .model-card ul li::marker { color: var(--gold); }
+  .model-card .powers {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: auto;
+  }
+  .model-card .powers a { color: var(--gold); text-decoration: none; }
+  .model-card .powers a:hover { text-decoration: underline; }
+  .model-card.honest {
+    color: var(--text);
+  }
+
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 820px) { .page-grid { grid-template-columns: 1fr; } }
+  .page-card {
+    display: block;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .page-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .page-card-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .page-card-body { padding: 16px 18px; }
+  .page-card h3 {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+  }
+  .page-card p {
     font-size: 13px;
     color: var(--text-secondary);
+    line-height: 1.55;
+    margin: 0;
   }
-  .readout-desc {
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--text);
-    flex: 1;
-  }
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 16px;
-  }
-  .play-btn {
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    width: 34px; height: 34px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    flex-shrink: 0;
-  }
-  .play-btn:hover { border-color: var(--gold); }
-  .play-btn:active { transform: scale(0.92); }
-  .play-btn {
-    transition: border-color 0.15s ease, transform 0.1s ease;
-  }
-  input[type="range"] {
-    flex: 1;
-    accent-color: var(--gold);
-  }
-  #scrubDot {
-    transition: cx 0.12s linear, cy 0.12s linear;
-  }
+
   .footnote {
     font-size: 12px;
     color: var(--text-secondary);
-    margin-top: 20px;
     line-height: 1.5;
+    max-width: 680px;
   }
   :focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   }
 </style>
 </head>
@@ -278,266 +235,75 @@
       NFL Win Probability
     </a>
     <div class="topnav-links">
-      <a href="./index.html" class="active" aria-current="page">Replays</a>
+      <a href="./replays.html">Replays</a>
       <a href="./live.html">Live</a>
       <a href="./season.html">Predictions</a>
     </div>
     <span class="topnav-right"></span>
   </nav>
 
-  <header>
-    <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC</p>
-    <h1>Win probability replay</h1>
-    <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
-  </header>
+  <div class="hero">
+    <p class="eyebrow">Two models &middot; trained from scratch &middot; results published as-is</p>
+    <h1>NFL win probability</h1>
+    <p>One model reads a live game state and says how likely each team is to win <em>right now</em>. A completely different model reads a matchup before kickoff and says who's likely to win <em>before a snap is played</em>. Both are built from scratch, and both pages below show their real, honestly-reported performance &mdash; including where they don't beat the obvious baseline.</p>
+  </div>
 
-  <main>
-    <div class="game-picker" id="gamePicker" role="group" aria-label="Select a game to replay"></div>
-
-    <div class="panel">
-      <div class="panel-content">
-        <div class="panel-header">
-          <div class="game-title" id="gameTitle"></div>
-          <div class="game-context" id="gameContext"></div>
-        </div>
-        <div class="chart-area">
-          <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Win probability chart for the selected play"></svg>
-        </div>
-        <div class="team-labels">
-          <span id="awayLabel"></span>
-          <span id="homeLabel"></span>
-        </div>
-        <div class="controls">
-          <button class="play-btn" id="playBtn" aria-label="Play" aria-pressed="false">&#9654;</button>
-          <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Play scrubber">
-        </div>
-        <div class="readout" aria-live="polite">
-          <div class="readout-stat">
-            <div class="readout-label">Win probability</div>
-            <div class="readout-value" id="wpValue">--</div>
-            <div class="readout-time" id="timeValue">--</div>
-          </div>
-          <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
-        </div>
+  <section>
+    <h2>How the models work</h2>
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="kind">In-game model</div>
+        <h3>Live game state &rarr; win probability</h3>
+        <ul>
+          <li>XGBoost classifier, isotonic-calibrated</li>
+          <li>Trained on ~166k plays from the 2021&ndash;2024 seasons</li>
+          <li>Inputs: score differential, time remaining, field position, down &amp; distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field)</li>
+          <li>0.845 AUC on a held-out 2024 season</li>
+        </ul>
+        <div class="powers">Powers <a href="./replays.html">Historical Replays</a> and the <a href="./live.html">Live Tracker</a> &mdash; same trained model, two different data sources (fixed historical plays vs. a live ESPN feed).</div>
+      </div>
+      <div class="model-card honest">
+        <div class="kind">Pregame model</div>
+        <h3>Matchup &rarr; win probability &amp; spread</h3>
+        <ul>
+          <li>Ridge regression, isotonic-calibrated</li>
+          <li>Trained on games 2005&ndash;2022, calibrated on 2023&ndash;2024, tested on 2025</li>
+          <li>Inputs: the betting line, rest days, division game, and situational context. A from-scratch Elo rating system was tried too, but backtested no better than the market line alone &mdash; so it isn't part of the shipped model</li>
+          <li>Statistically indistinguishable from the closing line on the 2025 holdout, reported as-is rather than oversold</li>
+        </ul>
+        <div class="powers">Powers <a href="./season.html">Season Predictions</a> &mdash; a genuinely different model, not a variant of the in-game one.</div>
       </div>
     </div>
-  </main>
+  </section>
 
-  <footer>
-    <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Model trained on 2021&ndash;2022 seasons, calibrated on 2023, and never saw the plays in these specific games during training in the case of the 2024 game shown &mdash; the rest are shown for their historical significance despite being partially in-sample.</p>
-  </footer>
+  <section>
+    <h2>Explore</h2>
+    <div class="page-grid">
+      <a class="page-card" href="./replays.html">
+        <img class="page-card-thumb" src="./images/thumb-replays.webp" alt="Historical Replays screenshot">
+        <div class="page-card-body">
+          <h3>Historical replays</h3>
+          <p>Scrub play-by-play through five of the most dramatic games from the last four seasons, watching win probability swing in real time.</p>
+        </div>
+      </a>
+      <a class="page-card" href="./live.html">
+        <img class="page-card-thumb" src="./images/thumb-live.png" alt="Live Tracker screenshot">
+        <div class="page-card-body">
+          <h3>Live tracker</h3>
+          <p>The same in-game model, scoring real 2026-season games as they're actually being played from ESPN's live feed.</p>
+        </div>
+      </a>
+      <a class="page-card" href="./season.html">
+        <img class="page-card-thumb" src="./images/thumb-season.png" alt="Season Predictions screenshot">
+        <div class="page-card-body">
+          <h3>Season predictions</h3>
+          <p>A different model predicting win probability and point spread for next week's games before kickoff, shown next to the Vegas line.</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <p class="footnote">Both models, their training pipelines, and their evaluation results are open in the repo &mdash; including the parts that didn't work (see the "left out of the shipped model" note above). Nothing here is optimized to look better than it actually performed.</p>
 </div>
-
-<script>
-// Covers all 32 teams so the live tracker can show any matchup, not just
-// the 6 teams in the showcase replays. WAS/WSH both map to Washington -
-// nflverse (historical showcase data) uses "WAS", ESPN (live feed) uses "WSH".
-// Lightened from each team's true brand color so every one is readable as
-// text/fills on our dark theme - many NFL primaries (navy, black) fail
-// WCAG AA contrast here at full darkness (HSL lightness raised per-color
-// until contrast >= 4.5:1 against the panel background, hue preserved).
-const TEAM_COLORS = {
-  ARI: '#da5e7b', ATL: '#e6566e', BAL: '#8a7be5', BUF: '#3d83ff',
-  CAR: '#00a8ff', CHI: '#5d88d5', CIN: '#FB4F14', CLE: '#ff9700',
-  DAL: '#3a88f3', DEN: '#0f87ff', DET: '#00a5ff', GB: '#53ac95',
-  HOU: '#0fa3f0', IND: '#1f87ff', JAX: '#648cb4', KC: '#ec5068',
-  LAC: '#00a5ff', LAR: '#3d83ff', LV: '#A5ACAF', MIA: '#00f0ff',
-  MIN: '#a075d7', NE: '#0f87ff', NO: '#D3BC8D', NYG: '#5e83ed',
-  NYJ: '#2cd39b', PHI: '#00e7ff', PIT: '#FFB612', SEA: '#69BE28',
-  SF: '#ff3838', TB: '#f64646', TEN: '#4B92DB', WAS: '#dc6060', WSH: '#dc6060'
-};
-const TEAM_NAMES = {
-  ARI: 'Cardinals', ATL: 'Falcons', BAL: 'Ravens', BUF: 'Bills',
-  CAR: 'Panthers', CHI: 'Bears', CIN: 'Bengals', CLE: 'Browns',
-  DAL: 'Cowboys', DEN: 'Broncos', DET: 'Lions', GB: 'Packers',
-  HOU: 'Texans', IND: 'Colts', JAX: 'Jaguars', KC: 'Chiefs',
-  LAC: 'Chargers', LAR: 'Rams', LV: 'Raiders', MIA: 'Dolphins',
-  MIN: 'Vikings', NE: 'Patriots', NO: 'Saints', NYG: 'Giants',
-  NYJ: 'Jets', PHI: 'Eagles', PIT: 'Steelers', SEA: 'Seahawks',
-  SF: '49ers', TB: 'Buccaneers', TEN: 'Titans', WAS: 'Commanders', WSH: 'Commanders'
-};
-
-let GAMES = {};
-let currentGameId = null;
-let playIndex = 0;
-let playTimer = null;
-
-async function loadData() {
-  const res = await fetch('games_data.json');
-  if (!res.ok) throw new Error(`Failed to fetch games_data.json (${res.status})`);
-  GAMES = await res.json();
-  const ids = Object.keys(GAMES);
-  buildPicker(ids);
-  selectGame(ids[0]);
-}
-
-function buildPicker(ids) {
-  const picker = document.getElementById('gamePicker');
-  picker.innerHTML = '';
-  ids.forEach(id => {
-    const g = GAMES[id];
-    const btn = document.createElement('button');
-    btn.className = 'game-btn' + (id === currentGameId ? ' active' : '');
-    btn.setAttribute('aria-pressed', id === currentGameId ? 'true' : 'false');
-    btn.innerHTML = `<div class="matchup">${g.away} @ ${g.home}</div><div>${g.label.split(' \u2014 ')[1] || ''}</div>`;
-    btn.onclick = () => selectGame(id);
-    btn.dataset.id = id;
-    picker.appendChild(btn);
-  });
-}
-
-function selectGame(id) {
-  currentGameId = id;
-  playIndex = 0;
-  stopPlay();
-  document.querySelectorAll('.game-btn').forEach(b => {
-    const isActive = b.dataset.id === id;
-    b.classList.toggle('active', isActive);
-    b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-  });
-  const g = GAMES[id];
-  document.getElementById('gameTitle').textContent = g.label.split(' \u2014 ')[0];
-  document.getElementById('gameContext').textContent = g.label.split(' \u2014 ').slice(1).join(' \u2014 ');
-  document.getElementById('awayLabel').textContent = `${TEAM_NAMES[g.away] || g.away} (${g.away})`;
-  document.getElementById('homeLabel').textContent = `${TEAM_NAMES[g.home] || g.home} (${g.home})`;
-  document.getElementById('scrubber').max = g.plays.length - 1;
-  document.getElementById('scrubber').value = 0;
-  drawChart(g);
-  updateReadout(0);
-
-  // Retrigger the fade-in whisper on the panel content each time the game changes.
-  const content = document.querySelector('.panel-content');
-  content.style.animation = 'none';
-  void content.offsetWidth;
-  content.style.animation = '';
-}
-
-function drawChart(g) {
-  const svg = document.getElementById('chart');
-  const n = g.plays.length;
-  const W = 1000, H = 320, MID = H / 2;
-  const homeColor = TEAM_COLORS[g.home] || '#E8B94A';
-  const awayColor = TEAM_COLORS[g.away] || '#5FA8D3';
-
-  const pts = g.plays.map((p, i) => {
-    const x = (i / (n - 1)) * W;
-    const y = H - (p[2] / 100) * H;
-    return [x, y];
-  });
-
-  const linePath = 'M ' + pts.map(p => p.join(',')).join(' L ');
-  const areaAbove = 'M0,' + MID + ' L ' + pts.map(p => p.join(',')).join(' L ') + ' L ' + W + ',' + MID + ' Z';
-
-  svg.innerHTML = `
-    <line x1="0" y1="${MID}" x2="${W}" y2="${MID}" stroke="#232B3D" stroke-width="2" stroke-dasharray="4,4"/>
-    <clipPath id="clipAbove"><rect x="0" y="0" width="${W}" height="${MID}"/></clipPath>
-    <clipPath id="clipBelow"><rect x="0" y="${MID}" width="${W}" height="${MID}"/></clipPath>
-    <path d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)"/>
-    <path d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)"/>
-    <path d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
-    <circle id="scrubDot" cx="0" cy="${MID}" r="6" fill="#E8B94A" stroke="#0A0E14" stroke-width="2"/>
-  `;
-
-  svg.onclick = (e) => {
-    const rect = svg.getBoundingClientRect();
-    const frac = (e.clientX - rect.left) / rect.width;
-    const idx = Math.round(frac * (n - 1));
-    playIndex = Math.max(0, Math.min(n - 1, idx));
-    document.getElementById('scrubber').value = playIndex;
-    updateReadout(playIndex);
-  };
-}
-
-function updateReadout(idx) {
-  const g = GAMES[currentGameId];
-  const p = g.plays[idx];
-  const [q, secsLeft, homeWp, desc] = p;
-  const dot = document.getElementById('scrubDot');
-  const n = g.plays.length;
-  const x = (idx / (n - 1)) * 1000;
-  const y = 320 - (homeWp / 100) * 320;
-  if (dot) { dot.setAttribute('cx', x); dot.setAttribute('cy', y); }
-
-  const leadingTeam = homeWp >= 50 ? g.home : g.away;
-  const leadingPct = homeWp >= 50 ? homeWp : 100 - homeWp;
-  document.getElementById('wpValue').textContent = `${leadingTeam} ${leadingPct.toFixed(1)}%`;
-  document.getElementById('wpValue').style.color = TEAM_COLORS[leadingTeam] || '#E8B94A';
-
-  // secsLeft counts down within the current period (max 900, i.e. 15:00).
-  // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
-  // not that no time remains - `|| 900` corrects that edge case.
-  const inQuarter = secsLeft % 900 || (secsLeft > 0 ? 900 : 0);
-  const mm = Math.floor(inQuarter / 60);
-  const ss = Math.floor(inQuarter % 60);
-  document.getElementById('timeValue').textContent = `Q${q} ${mm}:${ss.toString().padStart(2,'0')}`;
-  document.getElementById('descValue').textContent = desc || '(No play description)';
-}
-
-document.getElementById('scrubber').addEventListener('input', (e) => {
-  playIndex = parseInt(e.target.value);
-  updateReadout(playIndex);
-});
-
-function stopPlay() {
-  clearInterval(playTimer);
-  playTimer = null;
-  const btn = document.getElementById('playBtn');
-  btn.innerHTML = '&#9654;';
-  btn.setAttribute('aria-label', 'Play');
-  btn.setAttribute('aria-pressed', 'false');
-}
-
-function togglePlay() {
-  const g = GAMES[currentGameId];
-  if (playTimer) {
-    stopPlay();
-    return;
-  }
-  if (playIndex >= g.plays.length - 1) playIndex = 0;
-  const btn = document.getElementById('playBtn');
-  btn.innerHTML = '&#10074;&#10074;';
-  btn.setAttribute('aria-label', 'Pause');
-  btn.setAttribute('aria-pressed', 'true');
-  playTimer = setInterval(() => {
-    playIndex++;
-    if (playIndex >= g.plays.length) {
-      stopPlay();
-      playIndex = g.plays.length - 1;
-      return;
-    }
-    document.getElementById('scrubber').value = playIndex;
-    updateReadout(playIndex);
-  }, 90);
-}
-
-document.getElementById('playBtn').addEventListener('click', togglePlay);
-
-document.addEventListener('keydown', (e) => {
-  const g = GAMES[currentGameId];
-  if (!g) return;
-  if (e.key === 'ArrowRight') {
-    e.preventDefault();
-    stopPlay();
-    playIndex = Math.min(g.plays.length - 1, playIndex + 1);
-    document.getElementById('scrubber').value = playIndex;
-    updateReadout(playIndex);
-  } else if (e.key === 'ArrowLeft') {
-    e.preventDefault();
-    stopPlay();
-    playIndex = Math.max(0, playIndex - 1);
-    document.getElementById('scrubber').value = playIndex;
-    updateReadout(playIndex);
-  } else if (e.key === ' ') {
-    e.preventDefault();
-    togglePlay();
-  }
-});
-
-loadData().catch((err) => {
-  console.error(err);
-  document.getElementById('gameTitle').textContent = 'Failed to load game data';
-  document.getElementById('gameContext').textContent = String(err.message || err);
-});
-</script>
 </body>
 </html>
