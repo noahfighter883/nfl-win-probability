@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Season Predictions</title>
+<meta name="description" content="Pregame NFL win probability and spread predictions, benchmarked honestly against the closing betting line.">
+<meta name="theme-color" content="#0A0E14">
+<meta property="og:type" content="website">
+<meta property="og:title" content="NFL Season Predictions">
+<meta property="og:description" content="Pregame NFL win probability and spread predictions, benchmarked honestly against the closing betting line.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NFL Season Predictions">
+<meta name="twitter:description" content="Pregame NFL win probability and spread predictions, benchmarked honestly against the closing betting line.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0E14;
+    --panel: #121826;
+    --panel-2: #182034;
+    --border: #232B3D;
+    --text: #EDEFF3;
+    --text-secondary: #8892A6;
+    --gold: #E8B94A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 8px;
+  }
+  .eyebrow a { color: inherit; }
+  h1 {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+  }
+  .sub {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 0 12px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+  .honesty-note {
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+    max-width: 640px;
+  }
+  .honesty-note strong { color: var(--text); }
+  .week-heading {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    margin: 0 0 14px;
+  }
+  .games {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .game-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .game-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .matchup {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .gameday {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .prob-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: var(--panel-2);
+    margin-bottom: 10px;
+  }
+  .prob-bar div { height: 100%; }
+  .compare {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .compare-col { min-width: 140px; }
+  .compare-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 3px;
+  }
+  .compare-value { font-weight: 600; }
+  .empty-state {
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 40px 24px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+  .footnote {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 28px;
+    line-height: 1.5;
+  }
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Self-trained model &middot; Ridge regression, isotonic calibrated &middot; <a href="./index.html">Historical replays</a> &middot; <a href="./live.html">Live tracker</a></p>
+    <h1>Season predictions</h1>
+    <p class="sub">Pregame win probability and predicted spread for the upcoming week, from a model blending the closing betting line with rest, division, and situational context - refreshed daily as lines firm up. A self-computed Elo rating system was tested too, but backtested no better than the betting line alone, so it was left out of the shipped model (see note below).</p>
+    <p class="honesty-note" id="honestyNote">Loading...</p>
+  </header>
+
+  <main>
+    <div class="week-heading" id="weekHeading"></div>
+    <div class="games" id="games">
+      <div class="empty-state">Loading predictions&hellip;</div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="footnote">Predicts point margin with a single regressor; win probability is derived from that same prediction via isotonic calibration, so the two numbers never contradict each other. Backtested on the 2025 season: the model's win-probability Brier score and margin RMSE were statistically indistinguishable from simply using the closing betting line - it is not shown here as having an edge over the market, only as a transparent, from-scratch modeling exercise. Betting lines for games later in the week or season may not be posted yet.</p>
+  </footer>
+</div>
+
+<script>
+// Covers all 32 teams. WAS/WSH both map to Washington.
+const TEAM_COLORS = {
+  ARI: '#97233F', ATL: '#A71930', BAL: '#241773', BUF: '#00338D',
+  CAR: '#0085CA', CHI: '#0B162A', CIN: '#FB4F14', CLE: '#311D00',
+  DAL: '#041E42', DEN: '#002244', DET: '#0076B6', GB: '#203731',
+  HOU: '#03202F', IND: '#002C5F', JAX: '#101820', KC: '#E31837',
+  LA: '#003594', LAC: '#0080C6', LAR: '#003594', LV: '#A5ACAF', MIA: '#008E97',
+  MIN: '#4F2683', NE: '#002244', NO: '#D3BC8D', NYG: '#0B2265',
+  NYJ: '#125740', PHI: '#004C54', PIT: '#FFB612', SEA: '#69BE28',
+  SF: '#AA0000', TB: '#D50A0A', TEN: '#4B92DB', WAS: '#5A1414', WSH: '#5A1414'
+};
+const TEAM_NAMES = {
+  ARI: 'Cardinals', ATL: 'Falcons', BAL: 'Ravens', BUF: 'Bills',
+  CAR: 'Panthers', CHI: 'Bears', CIN: 'Bengals', CLE: 'Browns',
+  DAL: 'Cowboys', DEN: 'Broncos', DET: 'Lions', GB: 'Packers',
+  HOU: 'Texans', IND: 'Colts', JAX: 'Jaguars', KC: 'Chiefs',
+  LA: 'Rams', LAC: 'Chargers', LAR: 'Rams', LV: 'Raiders', MIA: 'Dolphins',
+  MIN: 'Vikings', NE: 'Patriots', NO: 'Saints', NYG: 'Giants',
+  NYJ: 'Jets', PHI: 'Eagles', PIT: 'Steelers', SEA: 'Seahawks',
+  SF: '49ers', TB: 'Buccaneers', TEN: 'Titans', WAS: 'Commanders', WSH: 'Commanders'
+};
+const GOLD = '#E8B94A';
+
+// Wherever data_pipeline/score_pregame.py's output gets published (see
+// .github/workflows/pregame-poll.yml).
+const DATA_URL = 'season_predictions.json';
+
+function formatGameday(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+function favoriteText(team, otherTeam, margin, line) {
+  if (line === null || line === undefined) return 'Line not yet posted';
+  const favorite = margin >= 0 ? team : otherTeam;
+  return `${favorite} ${Math.abs(line).toFixed(1)}`;
+}
+
+function renderGame(g) {
+  const homeColor = TEAM_COLORS[g.home] || GOLD;
+  const awayColor = TEAM_COLORS[g.away] || '#5FA8D3';
+  const homeName = TEAM_NAMES[g.home] || g.home;
+  const awayName = TEAM_NAMES[g.away] || g.away;
+  const homePct = g.home_win_prob;
+  const awayPct = 100 - homePct;
+  const leader = homePct >= 50 ? g.home : g.away;
+  const leaderPct = homePct >= 50 ? homePct : awayPct;
+  const leaderColor = TEAM_COLORS[leader] || GOLD;
+
+  const card = document.createElement('div');
+  card.className = 'game-card';
+
+  const row = document.createElement('div');
+  row.className = 'game-row';
+  const matchup = document.createElement('div');
+  matchup.className = 'matchup';
+  matchup.textContent = `${g.away} @ ${g.home}`;
+  const gameday = document.createElement('div');
+  gameday.className = 'gameday';
+  gameday.textContent = formatGameday(g.gameday);
+  row.appendChild(matchup);
+  row.appendChild(gameday);
+  card.appendChild(row);
+
+  const bar = document.createElement('div');
+  bar.className = 'prob-bar';
+  const awayDiv = document.createElement('div');
+  awayDiv.style.width = awayPct + '%';
+  awayDiv.style.background = awayColor;
+  const homeDiv = document.createElement('div');
+  homeDiv.style.width = homePct + '%';
+  homeDiv.style.background = homeColor;
+  bar.appendChild(awayDiv);
+  bar.appendChild(homeDiv);
+  card.appendChild(bar);
+
+  const compare = document.createElement('div');
+  compare.className = 'compare';
+
+  const wpCol = document.createElement('div');
+  wpCol.className = 'compare-col';
+  const wpLabel = document.createElement('div');
+  wpLabel.className = 'compare-label';
+  wpLabel.textContent = 'Model win probability';
+  const wpValue = document.createElement('div');
+  wpValue.className = 'compare-value';
+  wpValue.style.color = leaderColor;
+  wpValue.textContent = `${leader} ${leaderPct.toFixed(1)}%`;
+  wpCol.appendChild(wpLabel);
+  wpCol.appendChild(wpValue);
+
+  const spreadCol = document.createElement('div');
+  spreadCol.className = 'compare-col';
+  const spreadLabel = document.createElement('div');
+  spreadLabel.className = 'compare-label';
+  spreadLabel.textContent = 'Model spread';
+  const spreadValue = document.createElement('div');
+  spreadValue.className = 'compare-value';
+  spreadValue.textContent = favoriteText(g.home, g.away, g.predicted_margin, g.predicted_margin);
+  spreadCol.appendChild(spreadLabel);
+  spreadCol.appendChild(spreadValue);
+
+  const vegasCol = document.createElement('div');
+  vegasCol.className = 'compare-col';
+  const vegasLabel = document.createElement('div');
+  vegasLabel.className = 'compare-label';
+  vegasLabel.textContent = 'Vegas line';
+  const vegasValue = document.createElement('div');
+  vegasValue.className = 'compare-value';
+  vegasValue.textContent = favoriteText(g.home, g.away, g.vegas_spread_line, g.vegas_spread_line);
+  vegasCol.appendChild(vegasLabel);
+  vegasCol.appendChild(vegasValue);
+
+  compare.appendChild(wpCol);
+  compare.appendChild(spreadCol);
+  compare.appendChild(vegasCol);
+  card.appendChild(compare);
+
+  const labels = document.createElement('div');
+  labels.style.display = 'flex';
+  labels.style.justifyContent = 'space-between';
+  labels.style.fontFamily = "'JetBrains Mono', monospace";
+  labels.style.fontSize = '11px';
+  labels.style.color = 'var(--text-secondary)';
+  labels.style.marginTop = '10px';
+  const awayLabel = document.createElement('span');
+  awayLabel.textContent = `${awayName} (${g.away})`;
+  const homeLabel = document.createElement('span');
+  homeLabel.textContent = `${homeName} (${g.home})`;
+  labels.appendChild(awayLabel);
+  labels.appendChild(homeLabel);
+  card.appendChild(labels);
+
+  return card;
+}
+
+async function load() {
+  const res = await fetch(DATA_URL, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch ${DATA_URL} (${res.status})`);
+  const data = await res.json();
+
+  const gamesEl = document.getElementById('games');
+  const headingEl = document.getElementById('weekHeading');
+  const noteEl = document.getElementById('honestyNote');
+  gamesEl.innerHTML = '';
+
+  noteEl.textContent = data.generated_at
+    ? `Last updated ${new Date(data.generated_at).toLocaleString()}`
+    : 'No prediction run yet.';
+
+  if (!data.games || data.games.length === 0) {
+    headingEl.textContent = '';
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'No upcoming games to predict right now - check back closer to kickoff.';
+    gamesEl.appendChild(empty);
+    return;
+  }
+
+  headingEl.textContent = `${data.season} — Week ${data.week}`;
+  const sorted = [...data.games].sort((a, b) => a.gameday.localeCompare(b.gameday));
+  sorted.forEach(g => gamesEl.appendChild(renderGame(g)));
+}
+
+load().catch((err) => {
+  console.error(err);
+  document.getElementById('weekHeading').textContent = 'Failed to load predictions';
+  const gamesEl = document.getElementById('games');
+  gamesEl.innerHTML = '';
+  const empty = document.createElement('div');
+  empty.className = 'empty-state';
+  empty.textContent = String(err.message || err);
+  gamesEl.appendChild(empty);
+});
+</script>
+</body>
+</html>

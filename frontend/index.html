@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Win Probability Replay</title>
+<meta name="description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta name="theme-color" content="#0A0E14">
+<meta property="og:type" content="website">
+<meta property="og:title" content="NFL Win Probability Replay">
+<meta property="og:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NFL Win Probability Replay">
+<meta name="twitter:description" content="A win probability model trained from scratch on 166k NFL plays, replaying five of the most dramatic games of the last four seasons play by play.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%88%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0E14;
+    --panel: #121826;
+    --panel-2: #182034;
+    --border: #232B3D;
+    --text: #EDEFF3;
+    --text-secondary: #8892A6;
+    --gold: #E8B94A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding: 32px 24px 64px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 0 0 8px;
+  }
+  .eyebrow a { color: inherit; }
+  h1 {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: 0.01em;
+    margin: 0 0 6px;
+    text-transform: uppercase;
+  }
+  .sub {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 0 28px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+  .game-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .game-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+  .game-btn:hover { border-color: #3A445C; transform: translateY(-1px); }
+  .game-btn:active { transform: translateY(0); }
+  .game-btn.active {
+    border-color: var(--gold);
+    color: var(--text);
+  }
+  .game-btn .matchup {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+  }
+  .panel-content {
+    animation: wp-fade-in 0.25s ease;
+  }
+  @keyframes wp-fade-in {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .game-title {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+  }
+  .game-context {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chart-area { position: relative; margin: 20px 0 8px; }
+  svg { display: block; width: 100%; height: auto; cursor: crosshair; }
+  .team-labels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: -4px;
+  }
+  .readout {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .readout-stat { flex-shrink: 0; min-width: 96px; }
+  .readout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .readout-value {
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+  }
+  .readout-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .readout-desc {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    flex: 1;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .play-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .play-btn:hover { border-color: var(--gold); }
+  .play-btn:active { transform: scale(0.92); }
+  .play-btn {
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--gold);
+  }
+  #scrubDot {
+    transition: cx 0.12s linear, cy 0.12s linear;
+  }
+  .footnote {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC &middot; <a href="./live.html">See live games &rarr;</a> &middot; <a href="./season.html">Season predictions &rarr;</a></p>
+    <h1>Win probability replay</h1>
+    <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
+  </header>
+
+  <main>
+    <div class="game-picker" id="gamePicker" role="group" aria-label="Select a game to replay"></div>
+
+    <div class="panel">
+      <div class="panel-content">
+        <div class="panel-header">
+          <div class="game-title" id="gameTitle"></div>
+          <div class="game-context" id="gameContext"></div>
+        </div>
+        <div class="chart-area">
+          <svg id="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" role="img" aria-label="Win probability chart for the selected play"></svg>
+        </div>
+        <div class="team-labels">
+          <span id="awayLabel"></span>
+          <span id="homeLabel"></span>
+        </div>
+        <div class="controls">
+          <button class="play-btn" id="playBtn" aria-label="Play" aria-pressed="false">&#9654;</button>
+          <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Play scrubber">
+        </div>
+        <div class="readout" aria-live="polite">
+          <div class="readout-stat">
+            <div class="readout-label">Win probability</div>
+            <div class="readout-value" id="wpValue">--</div>
+            <div class="readout-time" id="timeValue">--</div>
+          </div>
+          <div class="readout-desc" id="descValue">Select a play to see the win probability swing.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="footnote">Win probability computed play-by-play from score differential, time remaining, field position, down/distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field). Model trained on 2021&ndash;2022 seasons, calibrated on 2023, and never saw the plays in these specific games during training in the case of the 2024 game shown &mdash; the rest are shown for their historical significance despite being partially in-sample.</p>
+  </footer>
+</div>
+
+<script>
+// Covers all 32 teams so the live tracker can show any matchup, not just
+// the 6 teams in the showcase replays. WAS/WSH both map to Washington -
+// nflverse (historical showcase data) uses "WAS", ESPN (live feed) uses "WSH".
+const TEAM_COLORS = {
+  ARI: '#97233F', ATL: '#A71930', BAL: '#241773', BUF: '#00338D',
+  CAR: '#0085CA', CHI: '#0B162A', CIN: '#FB4F14', CLE: '#311D00',
+  DAL: '#041E42', DEN: '#002244', DET: '#0076B6', GB: '#203731',
+  HOU: '#03202F', IND: '#002C5F', JAX: '#101820', KC: '#E31837',
+  LAC: '#0080C6', LAR: '#003594', LV: '#A5ACAF', MIA: '#008E97',
+  MIN: '#4F2683', NE: '#002244', NO: '#D3BC8D', NYG: '#0B2265',
+  NYJ: '#125740', PHI: '#004C54', PIT: '#FFB612', SEA: '#69BE28',
+  SF: '#AA0000', TB: '#D50A0A', TEN: '#4B92DB', WAS: '#5A1414', WSH: '#5A1414'
+};
+const TEAM_NAMES = {
+  ARI: 'Cardinals', ATL: 'Falcons', BAL: 'Ravens', BUF: 'Bills',
+  CAR: 'Panthers', CHI: 'Bears', CIN: 'Bengals', CLE: 'Browns',
+  DAL: 'Cowboys', DEN: 'Broncos', DET: 'Lions', GB: 'Packers',
+  HOU: 'Texans', IND: 'Colts', JAX: 'Jaguars', KC: 'Chiefs',
+  LAC: 'Chargers', LAR: 'Rams', LV: 'Raiders', MIA: 'Dolphins',
+  MIN: 'Vikings', NE: 'Patriots', NO: 'Saints', NYG: 'Giants',
+  NYJ: 'Jets', PHI: 'Eagles', PIT: 'Steelers', SEA: 'Seahawks',
+  SF: '49ers', TB: 'Buccaneers', TEN: 'Titans', WAS: 'Commanders', WSH: 'Commanders'
+};
+
+let GAMES = {};
+let currentGameId = null;
+let playIndex = 0;
+let playTimer = null;
+
+async function loadData() {
+  const res = await fetch('games_data.json');
+  if (!res.ok) throw new Error(`Failed to fetch games_data.json (${res.status})`);
+  GAMES = await res.json();
+  const ids = Object.keys(GAMES);
+  buildPicker(ids);
+  selectGame(ids[0]);
+}
+
+function buildPicker(ids) {
+  const picker = document.getElementById('gamePicker');
+  picker.innerHTML = '';
+  ids.forEach(id => {
+    const g = GAMES[id];
+    const btn = document.createElement('button');
+    btn.className = 'game-btn' + (id === currentGameId ? ' active' : '');
+    btn.setAttribute('aria-pressed', id === currentGameId ? 'true' : 'false');
+    btn.innerHTML = `<div class="matchup">${g.away} @ ${g.home}</div><div>${g.label.split(' \u2014 ')[1] || ''}</div>`;
+    btn.onclick = () => selectGame(id);
+    btn.dataset.id = id;
+    picker.appendChild(btn);
+  });
+}
+
+function selectGame(id) {
+  currentGameId = id;
+  playIndex = 0;
+  stopPlay();
+  document.querySelectorAll('.game-btn').forEach(b => {
+    const isActive = b.dataset.id === id;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+  const g = GAMES[id];
+  document.getElementById('gameTitle').textContent = g.label.split(' \u2014 ')[0];
+  document.getElementById('gameContext').textContent = g.label.split(' \u2014 ').slice(1).join(' \u2014 ');
+  document.getElementById('awayLabel').textContent = `${TEAM_NAMES[g.away] || g.away} (${g.away})`;
+  document.getElementById('homeLabel').textContent = `${TEAM_NAMES[g.home] || g.home} (${g.home})`;
+  document.getElementById('scrubber').max = g.plays.length - 1;
+  document.getElementById('scrubber').value = 0;
+  drawChart(g);
+  updateReadout(0);
+
+  // Retrigger the fade-in whisper on the panel content each time the game changes.
+  const content = document.querySelector('.panel-content');
+  content.style.animation = 'none';
+  void content.offsetWidth;
+  content.style.animation = '';
+}
+
+function drawChart(g) {
+  const svg = document.getElementById('chart');
+  const n = g.plays.length;
+  const W = 1000, H = 320, MID = H / 2;
+  const homeColor = TEAM_COLORS[g.home] || '#E8B94A';
+  const awayColor = TEAM_COLORS[g.away] || '#5FA8D3';
+
+  const pts = g.plays.map((p, i) => {
+    const x = (i / (n - 1)) * W;
+    const y = H - (p[2] / 100) * H;
+    return [x, y];
+  });
+
+  const linePath = 'M ' + pts.map(p => p.join(',')).join(' L ');
+  const areaAbove = 'M0,' + MID + ' L ' + pts.map(p => p.join(',')).join(' L ') + ' L ' + W + ',' + MID + ' Z';
+
+  svg.innerHTML = `
+    <line x1="0" y1="${MID}" x2="${W}" y2="${MID}" stroke="#232B3D" stroke-width="2" stroke-dasharray="4,4"/>
+    <clipPath id="clipAbove"><rect x="0" y="0" width="${W}" height="${MID}"/></clipPath>
+    <clipPath id="clipBelow"><rect x="0" y="${MID}" width="${W}" height="${MID}"/></clipPath>
+    <path d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)"/>
+    <path d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)"/>
+    <path d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
+    <circle id="scrubDot" cx="0" cy="${MID}" r="6" fill="#E8B94A" stroke="#0A0E14" stroke-width="2"/>
+  `;
+
+  svg.onclick = (e) => {
+    const rect = svg.getBoundingClientRect();
+    const frac = (e.clientX - rect.left) / rect.width;
+    const idx = Math.round(frac * (n - 1));
+    playIndex = Math.max(0, Math.min(n - 1, idx));
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  };
+}
+
+function updateReadout(idx) {
+  const g = GAMES[currentGameId];
+  const p = g.plays[idx];
+  const [q, secsLeft, homeWp, desc] = p;
+  const dot = document.getElementById('scrubDot');
+  const n = g.plays.length;
+  const x = (idx / (n - 1)) * 1000;
+  const y = 320 - (homeWp / 100) * 320;
+  if (dot) { dot.setAttribute('cx', x); dot.setAttribute('cy', y); }
+
+  const leadingTeam = homeWp >= 50 ? g.home : g.away;
+  const leadingPct = homeWp >= 50 ? homeWp : 100 - homeWp;
+  document.getElementById('wpValue').textContent = `${leadingTeam} ${leadingPct.toFixed(1)}%`;
+  document.getElementById('wpValue').style.color = TEAM_COLORS[leadingTeam] || '#E8B94A';
+
+  // secsLeft counts down within the current period (max 900, i.e. 15:00).
+  // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
+  // not that no time remains - `|| 900` corrects that edge case.
+  const inQuarter = secsLeft % 900 || (secsLeft > 0 ? 900 : 0);
+  const mm = Math.floor(inQuarter / 60);
+  const ss = Math.floor(inQuarter % 60);
+  document.getElementById('timeValue').textContent = `Q${q} ${mm}:${ss.toString().padStart(2,'0')}`;
+  document.getElementById('descValue').textContent = desc || '(No play description)';
+}
+
+document.getElementById('scrubber').addEventListener('input', (e) => {
+  playIndex = parseInt(e.target.value);
+  updateReadout(playIndex);
+});
+
+function stopPlay() {
+  clearInterval(playTimer);
+  playTimer = null;
+  const btn = document.getElementById('playBtn');
+  btn.innerHTML = '&#9654;';
+  btn.setAttribute('aria-label', 'Play');
+  btn.setAttribute('aria-pressed', 'false');
+}
+
+function togglePlay() {
+  const g = GAMES[currentGameId];
+  if (playTimer) {
+    stopPlay();
+    return;
+  }
+  if (playIndex >= g.plays.length - 1) playIndex = 0;
+  const btn = document.getElementById('playBtn');
+  btn.innerHTML = '&#10074;&#10074;';
+  btn.setAttribute('aria-label', 'Pause');
+  btn.setAttribute('aria-pressed', 'true');
+  playTimer = setInterval(() => {
+    playIndex++;
+    if (playIndex >= g.plays.length) {
+      stopPlay();
+      playIndex = g.plays.length - 1;
+      return;
+    }
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  }, 90);
+}
+
+document.getElementById('playBtn').addEventListener('click', togglePlay);
+
+document.addEventListener('keydown', (e) => {
+  const g = GAMES[currentGameId];
+  if (!g) return;
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    stopPlay();
+    playIndex = Math.min(g.plays.length - 1, playIndex + 1);
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    stopPlay();
+    playIndex = Math.max(0, playIndex - 1);
+    document.getElementById('scrubber').value = playIndex;
+    updateReadout(playIndex);
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    togglePlay();
+  }
+});
+
+loadData().catch((err) => {
+  console.error(err);
+  document.getElementById('gameTitle').textContent = 'Failed to load game data';
+  document.getElementById('gameContext').textContent = String(err.message || err);
+});
+</script>
+</body>
+</html>

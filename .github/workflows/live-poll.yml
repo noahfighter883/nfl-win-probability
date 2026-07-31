@@ -1,0 +1,104 @@
+name: Live win probability poller
+
+# Polls ESPN for NFL games currently in progress, scores them with the
+# already-trained model (data_pipeline/model/ - committed to the repo, not
+# retrained here, see data_pipeline/live_score.py), and publishes the
+# result to the `live-data` branch as live_games_data.json.
+#
+# To serve it: point GitHub Pages (or any static host) at the `live-data`
+# branch, and set DATA_URL in frontend/live.html to that URL. This is one
+# option among several (a small always-on server works too) - swap it out
+# if you'd rather host differently.
+#
+# The cron windows below are a broad approximation of NFL kickoff windows
+# in UTC (Thu/Sun/Mon) - intentionally generous, since a run outside an
+# actual game window just costs a few Action minutes (live_score.py exits
+# cleanly with an empty result when nothing's live). GitHub's scheduled
+# cron has ~5 minute granularity and can lag further under load:
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+
+on:
+  schedule:
+    # Thursday Night Football: ~8:00pm-11:59pm ET -> ~00:00-04:00 UTC Fri
+    - cron: "*/5 0-3 * * 5"
+    # Sunday early/late/SNF: ~1:00pm ET Sun -> ~1:00am ET Mon
+    - cron: "*/5 17-23 * * 0"
+    - cron: "*/5 0-3 * * 1"
+    # Monday Night Football: ~8:00pm-11:59pm ET -> ~00:00-04:00 UTC Tue
+    - cron: "*/5 0-3 * * 2"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: data_pipeline
+        run: pip install -r requirements.txt
+
+      - name: Fetch previously-published live data (if any)
+        run: |
+          # Each run starts from a fresh checkout of main, which never
+          # contains live_games_data.json (that only ever lives on the
+          # live-data branch below). live_score.py merges newly-live games
+          # into whatever's already at --out and prunes anything older than
+          # 2 days (see MAX_GAME_AGE in live_score.py) - without seeding it
+          # here first, that merge/prune logic has nothing to work with, and
+          # a game would vanish from the published output within 5 minutes
+          # of going final instead of staying visible as a frozen result.
+          git fetch origin live-data 2>/dev/null || true
+          if git show origin/live-data:live_games_data.json > data_pipeline/live_games_data.json 2>/dev/null; then
+            echo "Seeded from live-data branch."
+          else
+            # `>` truncates/creates the file even when the command on its
+            # left fails, leaving a 0-byte file that would crash
+            # live_score.py's json.load() - remove it so the script sees
+            # "no prior file" (which it already handles) instead of "empty
+            # invalid JSON".
+            rm -f data_pipeline/live_games_data.json
+            echo "No previously-published data (first run, or branch doesn't exist yet)."
+          fi
+
+      - name: Score live games
+        working-directory: data_pipeline
+        run: python live_score.py --model-dir model --out live_games_data.json
+
+      - name: Publish to live-data branch
+        run: |
+          set -e
+          OUT=data_pipeline/live_games_data.json
+          if [ ! -s "$OUT" ] || [ "$(cat "$OUT")" = "{}" ]; then
+            echo "No live games this run - nothing to publish."
+            exit 0
+          fi
+
+          mkdir -p /tmp/publish
+          cp "$OUT" /tmp/publish/live_games_data.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin live-data > /dev/null 2>&1; then
+            git fetch origin live-data
+            git checkout -B live-data origin/live-data
+          else
+            git checkout --orphan live-data
+          fi
+
+          cp /tmp/publish/live_games_data.json live_games_data.json
+          git add live_games_data.json
+          git commit -m "Update live win probability data" || { echo "No changes to publish."; exit 0; }
+          git push origin live-data

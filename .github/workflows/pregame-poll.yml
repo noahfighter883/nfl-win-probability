@@ -1,0 +1,72 @@
+name: Pregame prediction poller
+
+# Scores the upcoming week's NFL games with the already-trained pregame
+# model (data_pipeline/pregame_model/ - committed to the repo, not
+# retrained here, see data_pipeline/score_pregame.py) and publishes the
+# result to the `live-data` branch as season_predictions.json, alongside
+# live_games_data.json (see live-poll.yml).
+#
+# To serve it: point GitHub Pages (or any static host) at the `live-data`
+# branch, and set DATA_URL in frontend/season.html to that URL.
+#
+# Runs once daily, not every few minutes like live-poll.yml - betting
+# lines and rest-day data don't move nearly as fast as a live game does,
+# but re-running daily lets predictions pick up newly-posted lines as a
+# week approaches and refreshes ratings as each week's games complete.
+
+on:
+  schedule:
+    - cron: "0 12 * * *"  # 12:00 UTC daily (~8am ET / ~7am CT)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pregame-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: data_pipeline
+        run: pip install -r requirements.txt
+
+      - name: Score upcoming week
+        working-directory: data_pipeline
+        run: python score_pregame.py --model-dir pregame_model --out season_predictions.json
+
+      - name: Publish to live-data branch
+        run: |
+          set -e
+          OUT=data_pipeline/season_predictions.json
+          if [ ! -s "$OUT" ] || [ "$(python3 -c "import json; print(len(json.load(open('$OUT'))['games']))")" = "0" ]; then
+            echo "No upcoming games this run - nothing to publish."
+            exit 0
+          fi
+
+          mkdir -p /tmp/publish
+          cp "$OUT" /tmp/publish/season_predictions.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin live-data > /dev/null 2>&1; then
+            git fetch origin live-data
+            git checkout -B live-data origin/live-data
+          else
+            git checkout --orphan live-data
+          fi
+
+          cp /tmp/publish/season_predictions.json season_predictions.json
+          git add season_predictions.json
+          git commit -m "Update season predictions" || { echo "No changes to publish."; exit 0; }
+          git push origin live-data

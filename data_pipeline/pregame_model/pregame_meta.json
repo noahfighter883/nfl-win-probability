@@ -1,0 +1,1 @@
+{"model_name": "ridge", "feature_set": "spread_only", "hfa": 45, "sigma": 13.305323878538026, "test_margin_rmse": 12.287368601840377, "test_wp_auc": 0.7122465753424657, "baseline_margin_rmse": 12.28644139148601, "baseline_wp_auc": 0.7167123287671233}
