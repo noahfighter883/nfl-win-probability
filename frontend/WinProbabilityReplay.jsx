@@ -38,6 +38,13 @@ const CHART_W = 1000;
 const CHART_H = 320;
 const MID = CHART_H / 2;
 
+const DOWN_ORDINALS = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
+function formatDownDistance(down, ydstogo) {
+  if (!down) return "";
+  const ordinal = DOWN_ORDINALS[down] || `${down}th`;
+  return ydstogo === null || ydstogo === undefined ? `${ordinal} down` : `${ordinal} & ${ydstogo}`;
+}
+
 function formatClock(secsLeft) {
   // secsLeft counts down within the current period (max 900, i.e. 15:00).
   // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
@@ -57,7 +64,10 @@ function formatClock(secsLeft) {
  *     label: string,       // e.g. "Vikings 39, Colts 36 (OT) — Dec 17, 2022 — ..."
  *     home: "MIN",
  *     away: "IND",
- *     plays: [ [qtr, secondsRemaining, homeWinProbPct, playDescription], ... ]
+ *     plays: [ [qtr, secondsRemaining, homeWinProbPct, playDescription, down, ydstogo], ... ]
+ *     // down/ydstogo are optional (older data may omit them, or a play may
+ *     // have no meaningful down, e.g. a kickoff) - falls back to hiding
+ *     // the down & distance line rather than showing "undefined & undefined".
  *   }
  * }
  *
@@ -192,17 +202,24 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
     }
   };
 
+  const step = useCallback(
+    (delta) => {
+      if (n === 0) return;
+      stopPlay();
+      setPlayIndex((prev) => Math.max(0, Math.min(n - 1, prev + delta)));
+    },
+    [n, stopPlay]
+  );
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (n === 0) return;
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        stopPlay();
-        setPlayIndex((prev) => Math.min(n - 1, prev + 1));
+        step(1);
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        stopPlay();
-        setPlayIndex((prev) => Math.max(0, prev - 1));
+        step(-1);
       } else if (e.key === " ") {
         e.preventDefault();
         togglePlay();
@@ -210,7 +227,7 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [n, stopPlay, togglePlay]);
+  }, [n, step, togglePlay]);
 
   const handleChartClick = (e) => {
     if (!svgRef.current || n === 0) return;
@@ -224,7 +241,8 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
   if (!game) return null;
 
   const current = plays[playIndex];
-  const [qtr, secsLeft, homeWp, desc] = current || [1, 3600, 50, ""];
+  const [qtr, secsLeft, homeWp, desc, down, ydstogo] = current || [1, 3600, 50, ""];
+  const downDistanceText = formatDownDistance(down, ydstogo);
   const homeColor = TEAM_COLORS[game.home] || GOLD;
   const awayColor = TEAM_COLORS[game.away] || "#5FA8D3";
   const leadingTeam = homeWp >= 50 ? game.home : game.away;
@@ -328,6 +346,9 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
           </div>
 
           <div className="wp-controls">
+            <button className="wp-play-btn wp-step-btn" onClick={() => step(-1)} aria-label="Previous play">
+              ⏮
+            </button>
             <button
               className="wp-play-btn"
               onClick={togglePlay}
@@ -335,6 +356,9 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
               aria-pressed={isPlaying}
             >
               {isPlaying ? "❚❚" : "▶"}
+            </button>
+            <button className="wp-play-btn wp-step-btn" onClick={() => step(1)} aria-label="Next play">
+              ⏭
             </button>
             <input
               type="range"
@@ -359,7 +383,11 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
                 Q{qtr} {formatClock(secsLeft)}
               </div>
             </div>
-            <div className="wp-readout-desc">{desc || "(No play description)"}</div>
+            <div className="wp-readout-desc">
+              {downDistanceText && <span className="wp-down-distance">{downDistanceText}</span>}
+              {downDistanceText && " — "}
+              {desc || "(No play description)"}
+            </div>
           </div>
         </div>
       </div>

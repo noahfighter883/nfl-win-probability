@@ -7,7 +7,7 @@ already-trained XGBoost model + isotonic calibrator (produced by
 train_model.py - not retrained here), and writes a JSON file in the exact
 `gamesData` shape WinProbabilityReplay.jsx already consumes:
 
-  { [gameId]: { label, home, away, plays: [[qtr, secsLeft, homeWp, desc], ...] } }
+  { [gameId]: { label, home, away, plays: [[qtr, secsLeft, homeWp, desc, down, ydstogo], ...] } }
 
 `secsLeft` here is `game_seconds_remaining` (counts down from 3600 across
 the whole regulation game, resetting for overtime) - matching what's
@@ -65,7 +65,8 @@ def load_artifacts(model_dir=DEFAULT_MODEL_DIR):
 
 def score_rows(rows, model, feature_cols, calibrator):
     """rows: list of raw play dicts from live_feed.get_game_rows.
-    Returns a list of [qtr, secsLeft, homeWp, desc] play tuples, in order."""
+    Returns a list of [qtr, secsLeft, homeWp, desc, down, ydstogo] play
+    tuples, in order."""
     if not rows:
         return []
 
@@ -89,6 +90,8 @@ def score_rows(rows, model, feature_cols, calibrator):
             int(row["game_seconds_remaining"]),
             round(float(home_wp) * 100, 1),
             row["desc"],
+            int(row["down"]),
+            int(row["ydstogo"]) if pd.notna(row["ydstogo"]) else None,
         ])
     return plays
 

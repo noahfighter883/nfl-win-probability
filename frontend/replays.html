@@ -224,10 +224,14 @@
     color: var(--text);
     flex: 1;
   }
+  .down-distance {
+    color: var(--gold);
+    font-weight: 600;
+  }
   .controls {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     margin-top: 16px;
   }
   .play-btn {
@@ -248,6 +252,8 @@
   .play-btn {
     transition: border-color 0.15s ease, transform 0.1s ease;
   }
+  .step-btn { font-size: 12px; }
+  input[type="range"] { margin-left: 4px; }
   input[type="range"] {
     flex: 1;
     accent-color: var(--gold);
@@ -308,7 +314,9 @@
           <span id="homeLabel"></span>
         </div>
         <div class="controls">
+          <button class="play-btn step-btn" id="stepBackBtn" aria-label="Previous play">&#9198;</button>
           <button class="play-btn" id="playBtn" aria-label="Play" aria-pressed="false">&#9654;</button>
+          <button class="play-btn step-btn" id="stepForwardBtn" aria-label="Next play">&#9197;</button>
           <input type="range" id="scrubber" min="0" max="100" value="0" aria-label="Play scrubber">
         </div>
         <div class="readout" aria-live="polite">
@@ -448,10 +456,17 @@ function drawChart(g) {
   };
 }
 
+const DOWN_ORDINALS = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' };
+function formatDownDistance(down, ydstogo) {
+  if (!down) return '';
+  const ordinal = DOWN_ORDINALS[down] || `${down}th`;
+  return (ydstogo === null || ydstogo === undefined) ? `${ordinal} down` : `${ordinal} & ${ydstogo}`;
+}
+
 function updateReadout(idx) {
   const g = GAMES[currentGameId];
   const p = g.plays[idx];
-  const [q, secsLeft, homeWp, desc] = p;
+  const [q, secsLeft, homeWp, desc, down, ydstogo] = p;
   const dot = document.getElementById('scrubDot');
   const n = g.plays.length;
   const x = (idx / (n - 1)) * 1000;
@@ -470,7 +485,28 @@ function updateReadout(idx) {
   const mm = Math.floor(inQuarter / 60);
   const ss = Math.floor(inQuarter % 60);
   document.getElementById('timeValue').textContent = `Q${q} ${mm}:${ss.toString().padStart(2,'0')}`;
-  document.getElementById('descValue').textContent = desc || '(No play description)';
+
+  const descEl = document.getElementById('descValue');
+  descEl.textContent = '';
+  const ddText = formatDownDistance(down, ydstogo);
+  if (ddText) {
+    const ddSpan = document.createElement('span');
+    ddSpan.className = 'down-distance';
+    ddSpan.textContent = ddText;
+    descEl.appendChild(ddSpan);
+    descEl.appendChild(document.createTextNode(' — ' + (desc || '(No play description)')));
+  } else {
+    descEl.textContent = desc || '(No play description)';
+  }
+}
+
+function step(delta) {
+  const g = GAMES[currentGameId];
+  if (!g) return;
+  stopPlay();
+  playIndex = Math.max(0, Math.min(g.plays.length - 1, playIndex + delta));
+  document.getElementById('scrubber').value = playIndex;
+  updateReadout(playIndex);
 }
 
 document.getElementById('scrubber').addEventListener('input', (e) => {
@@ -511,22 +547,17 @@ function togglePlay() {
 }
 
 document.getElementById('playBtn').addEventListener('click', togglePlay);
+document.getElementById('stepBackBtn').addEventListener('click', () => step(-1));
+document.getElementById('stepForwardBtn').addEventListener('click', () => step(1));
 
 document.addEventListener('keydown', (e) => {
-  const g = GAMES[currentGameId];
-  if (!g) return;
+  if (!GAMES[currentGameId]) return;
   if (e.key === 'ArrowRight') {
     e.preventDefault();
-    stopPlay();
-    playIndex = Math.min(g.plays.length - 1, playIndex + 1);
-    document.getElementById('scrubber').value = playIndex;
-    updateReadout(playIndex);
+    step(1);
   } else if (e.key === 'ArrowLeft') {
     e.preventDefault();
-    stopPlay();
-    playIndex = Math.max(0, playIndex - 1);
-    document.getElementById('scrubber').value = playIndex;
-    updateReadout(playIndex);
+    step(-1);
   } else if (e.key === ' ') {
     e.preventDefault();
     togglePlay();

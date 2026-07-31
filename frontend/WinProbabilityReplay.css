@@ -154,8 +154,12 @@
 .wp-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   margin-top: 16px;
+}
+
+.wp-step-btn {
+  font-size: 12px;
 }
 
 .wp-play-btn {
@@ -229,6 +233,11 @@
   line-height: 1.5;
   color: var(--wp-text);
   flex: 1;
+}
+
+.wp-down-distance {
+  color: var(--wp-gold);
+  font-weight: 600;
 }
 
 .wp-replay :focus-visible {
