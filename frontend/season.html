@@ -127,6 +127,14 @@
     max-width: 640px;
   }
   .honesty-note strong { color: var(--text); }
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 14px;
+  }
   .week-heading {
     font-family: 'Archivo Narrow', sans-serif;
     font-weight: 700;
@@ -134,8 +142,31 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
     color: var(--text-secondary);
-    margin: 0 0 14px;
+    margin: 0;
   }
+  .sort-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sort-control label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+  .sort-control select {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .sort-control select:hover { border-color: #3A445C; }
   .games {
     display: flex;
     flex-direction: column;
@@ -236,7 +267,19 @@
   </header>
 
   <main>
-    <div class="week-heading" id="weekHeading"></div>
+    <div class="list-header">
+      <div class="week-heading" id="weekHeading"></div>
+      <div class="sort-control">
+        <label for="sortSelect">Sort by</label>
+        <select id="sortSelect">
+          <option value="date">Game time</option>
+          <option value="spread-desc">Biggest predicted spread</option>
+          <option value="spread-asc">Smallest predicted spread</option>
+          <option value="diff-desc">Biggest vs. Vegas difference</option>
+          <option value="diff-asc">Smallest vs. Vegas difference</option>
+        </select>
+      </div>
+    </div>
     <div class="games" id="games">
       <div class="empty-state">Loading predictions&hellip;</div>
     </div>
@@ -391,6 +434,47 @@ function renderGame(g) {
   return card;
 }
 
+let currentGames = [];
+
+// Games without a posted vegas_spread_line have no meaningful "difference
+// from Vegas" - pushed to the end regardless of sort direction rather than
+// sorted as if the gap were zero (or infinite).
+function sortGames(games, mode) {
+  const arr = [...games];
+  const byDateThenAway = (a, b) => a.gameday.localeCompare(b.gameday) || a.away.localeCompare(b.away);
+
+  if (mode === 'spread-desc' || mode === 'spread-asc') {
+    const dir = mode === 'spread-desc' ? -1 : 1;
+    arr.sort((a, b) => dir * (Math.abs(a.predicted_margin) - Math.abs(b.predicted_margin)) || byDateThenAway(a, b));
+    return arr;
+  }
+
+  if (mode === 'diff-desc' || mode === 'diff-asc') {
+    const hasLine = g => g.vegas_spread_line !== null && g.vegas_spread_line !== undefined;
+    const withLine = arr.filter(hasLine);
+    const withoutLine = arr.filter(g => !hasLine(g));
+    const dir = mode === 'diff-desc' ? -1 : 1;
+    withLine.sort((a, b) => {
+      const diffA = Math.abs(a.predicted_margin - a.vegas_spread_line);
+      const diffB = Math.abs(b.predicted_margin - b.vegas_spread_line);
+      return dir * (diffA - diffB) || byDateThenAway(a, b);
+    });
+    withoutLine.sort(byDateThenAway);
+    return [...withLine, ...withoutLine];
+  }
+
+  arr.sort(byDateThenAway);
+  return arr;
+}
+
+function renderGames() {
+  const gamesEl = document.getElementById('games');
+  gamesEl.innerHTML = '';
+  const mode = document.getElementById('sortSelect').value;
+  const sorted = sortGames(currentGames, mode);
+  sorted.forEach(g => gamesEl.appendChild(renderGame(g)));
+}
+
 async function load() {
   const res = await fetch(DATA_URL, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Failed to fetch ${DATA_URL} (${res.status})`);
@@ -407,6 +491,7 @@ async function load() {
 
   if (!data.games || data.games.length === 0) {
     headingEl.textContent = '';
+    document.querySelector('.sort-control').style.display = 'none';
     const empty = document.createElement('div');
     empty.className = 'empty-state';
     empty.textContent = 'No upcoming games to predict right now - check back closer to kickoff.';
@@ -415,9 +500,11 @@ async function load() {
   }
 
   headingEl.textContent = `${data.season} — Week ${data.week}`;
-  const sorted = [...data.games].sort((a, b) => a.gameday.localeCompare(b.gameday));
-  sorted.forEach(g => gamesEl.appendChild(renderGame(g)));
+  currentGames = data.games;
+  renderGames();
 }
+
+document.getElementById('sortSelect').addEventListener('change', renderGames);
 
 load().catch((err) => {
   console.error(err);
