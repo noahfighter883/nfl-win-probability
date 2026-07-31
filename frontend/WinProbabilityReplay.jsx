@@ -45,6 +45,12 @@ function formatDownDistance(down, ydstogo) {
   return ydstogo === null || ydstogo === undefined ? `${ordinal} down` : `${ordinal} & ${ydstogo}`;
 }
 
+// nflverse numbers periods past regulation sequentially (5 = OT, 6 = 2OT, ...)
+// rather than resetting - "Q5" reads as a typo, so spell it out.
+function formatQuarter(q) {
+  return q <= 4 ? `Q${q}` : q === 5 ? "OT" : `${q - 4}OT`;
+}
+
 function formatClock(secsLeft) {
   // secsLeft counts down within the current period (max 900, i.e. 15:00).
   // secsLeft % 900 === 0 means the period just started (15:00 on the clock),
@@ -64,10 +70,11 @@ function formatClock(secsLeft) {
  *     label: string,       // e.g. "Vikings 39, Colts 36 (OT) — Dec 17, 2022 — ..."
  *     home: "MIN",
  *     away: "IND",
- *     plays: [ [qtr, secondsRemaining, homeWinProbPct, playDescription, down, ydstogo], ... ]
- *     // down/ydstogo are optional (older data may omit them, or a play may
- *     // have no meaningful down, e.g. a kickoff) - falls back to hiding
- *     // the down & distance line rather than showing "undefined & undefined".
+ *     plays: [ [qtr, secondsRemaining, homeWinProbPct, playDescription, down, ydstogo, homeScore, awayScore], ... ]
+ *     // down/ydstogo/homeScore/awayScore are optional (older data may omit
+ *     // them, or a play may have no meaningful down, e.g. a kickoff) -
+ *     // falls back to hiding that part of the readout rather than showing
+ *     // "undefined & undefined".
  *   }
  * }
  *
@@ -241,8 +248,9 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
   if (!game) return null;
 
   const current = plays[playIndex];
-  const [qtr, secsLeft, homeWp, desc, down, ydstogo] = current || [1, 3600, 50, ""];
+  const [qtr, secsLeft, homeWp, desc, down, ydstogo, homeScore, awayScore] = current || [1, 3600, 50, ""];
   const downDistanceText = formatDownDistance(down, ydstogo);
+  const hasScore = homeScore !== undefined && awayScore !== undefined && homeScore !== null && awayScore !== null;
   const homeColor = TEAM_COLORS[game.home] || GOLD;
   const awayColor = TEAM_COLORS[game.away] || "#5FA8D3";
   const leadingTeam = homeWp >= 50 ? game.home : game.away;
@@ -380,7 +388,8 @@ export default function WinProbabilityReplay({ gamesData, liveUrl, livePollMs = 
                 {leadingTeam} {leadingPct.toFixed(1)}%
               </div>
               <div className="wp-readout-time">
-                Q{qtr} {formatClock(secsLeft)}
+                {formatQuarter(qtr)} {formatClock(secsLeft)}
+                {hasScore && ` · ${game.away} ${awayScore}–${game.home} ${homeScore}`}
               </div>
             </div>
             <div className="wp-readout-desc">

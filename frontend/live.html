@@ -572,11 +572,17 @@ function formatDownDistance(down, ydstogo) {
   return (ydstogo === null || ydstogo === undefined) ? `${ordinal} down` : `${ordinal} & ${ydstogo}`;
 }
 
+// nflverse numbers periods past regulation sequentially (5 = OT, 6 = 2OT, ...)
+// rather than resetting - "Q5" reads as a typo, so spell it out.
+function formatQuarter(q) {
+  return q <= 4 ? `Q${q}` : (q === 5 ? 'OT' : `${q - 4}OT`);
+}
+
 function updateReadout(idx) {
   const g = GAMES[currentGameId];
   if (!g || !g.plays.length) return;
   const p = g.plays[idx];
-  const [q, secsLeft, homeWp, desc, down, ydstogo] = p;
+  const [q, secsLeft, homeWp, desc, down, ydstogo, homeScore, awayScore] = p;
   const dot = document.getElementById('scrubDot');
   const n = g.plays.length;
   const x = n > 1 ? (idx / (n - 1)) * 1000 : 0;
@@ -593,7 +599,11 @@ function updateReadout(idx) {
   const inQuarter = secsLeft % 900 || (secsLeft > 0 ? 900 : 0);
   const mm = Math.floor(inQuarter / 60);
   const ss = Math.floor(inQuarter % 60);
-  document.getElementById('timeValue').textContent = `Q${q} ${mm}:${ss.toString().padStart(2,'0')}`;
+  let timeText = `${formatQuarter(q)} ${mm}:${ss.toString().padStart(2,'0')}`;
+  if (homeScore !== undefined && awayScore !== undefined && homeScore !== null && awayScore !== null) {
+    timeText += ` · ${g.away} ${awayScore}–${g.home} ${homeScore}`;
+  }
+  document.getElementById('timeValue').textContent = timeText;
 
   const descEl = document.getElementById('descValue');
   descEl.textContent = '';

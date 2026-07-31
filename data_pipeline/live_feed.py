@@ -207,6 +207,10 @@ def get_game_rows(event_id):
                     "posteam_timeouts_remaining": timeouts.get(pos_id, 0),
                     "defteam_timeouts_remaining": timeouts.get(def_id, 0),
                     "posteam_type": pos_info.get("home_away"),
+                    # Display-only, not a model feature: score entering this
+                    # play, same "before" convention as score_differential above.
+                    "home_score": running_score.get(home["team"]["id"], 0),
+                    "away_score": running_score.get(away["team"]["id"], 0),
                 })
 
         # Post-play cumulative score becomes the "before" score for the next play.
