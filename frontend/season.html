@@ -34,6 +34,63 @@
     padding: 32px 24px 64px;
   }
   .wrap { max-width: 920px; margin: 0 auto; }
+  .topnav {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 22px;
+    margin-bottom: 32px;
+  }
+  .topnav-brand {
+    justify-self: start;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--text);
+    text-decoration: none;
+    font-family: 'Archivo Narrow', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .topnav-badge {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .topnav-links {
+    justify-self: center;
+    display: flex;
+    gap: 26px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .topnav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .topnav-links a:hover { color: var(--text); }
+  .topnav-links a.active { color: var(--gold); }
+  .topnav-right { justify-self: end; }
+  @media (max-width: 560px) {
+    .topnav { grid-template-columns: 1fr; justify-items: center; border-radius: 20px; row-gap: 10px; padding: 16px 18px; }
+    .topnav-brand, .topnav-links { justify-self: center; }
+  }
   .eyebrow {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
@@ -158,8 +215,21 @@
 </head>
 <body>
 <div class="wrap">
+  <nav class="topnav" aria-label="Site">
+    <a class="topnav-brand" href="./index.html">
+      <span class="topnav-badge" aria-hidden="true">&#127944;</span>
+      NFL Win Probability
+    </a>
+    <div class="topnav-links">
+      <a href="./index.html">Replays</a>
+      <a href="./live.html">Live</a>
+      <a href="./season.html" class="active" aria-current="page">Predictions</a>
+    </div>
+    <span class="topnav-right"></span>
+  </nav>
+
   <header>
-    <p class="eyebrow">Self-trained model &middot; Ridge regression, isotonic calibrated &middot; <a href="./index.html">Historical replays</a> &middot; <a href="./live.html">Live tracker</a></p>
+    <p class="eyebrow">Self-trained model &middot; Ridge regression, isotonic calibrated</p>
     <h1>Season predictions</h1>
     <p class="sub">Pregame win probability and predicted spread for the upcoming week, from a model blending the closing betting line with rest, division, and situational context - refreshed daily as lines firm up. A self-computed Elo rating system was tested too, but backtested no better than the betting line alone, so it was left out of the shipped model (see note below).</p>
     <p class="honesty-note" id="honestyNote">Loading...</p>
