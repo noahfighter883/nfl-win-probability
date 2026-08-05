@@ -65,7 +65,10 @@ root) — a brief explanation of how the in-game and pregame models are each
 calculated, and a clickable thumbnail linking to each of the three views
 (`replays.html`, `live.html`, `season.html`). Thumbnails live in
 `frontend/images/`; the live/season ones are real screenshots (captured
-via headless Chrome), not mockups.
+via headless Chrome), not mockups. There's no automated regeneration —
+they'll visually drift if `live.html`/`season.html`'s design changes, so
+recapture them by hand (same headless Chrome `--screenshot=` approach) after
+any visual change to those two pages.
 
 ## Live tracker
 

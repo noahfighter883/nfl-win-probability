@@ -233,6 +233,10 @@
     line-height: 1.5;
     max-width: 680px;
   }
+  .term {
+    cursor: help;
+    border-bottom: 1px dotted var(--text-secondary);
+  }
   :focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
@@ -267,10 +271,10 @@
         <div class="kind">In-game model</div>
         <h3>Live game state &rarr; win probability</h3>
         <ul>
-          <li>XGBoost classifier, isotonic-calibrated</li>
+          <li>XGBoost classifier, <span class="term" title="Adjusted so a predicted 70% actually wins about 70% of the time - not just ranked correctly, but numerically honest.">isotonic-calibrated</span></li>
           <li>Trained on ~166k plays from the 2021&ndash;2024 seasons</li>
           <li>Inputs: score differential, time remaining, field position, down &amp; distance, timeouts, and situational flags (red zone, two-minute drill, garbage time, home field)</li>
-          <li>0.845 AUC on a held-out 2024 season</li>
+          <li><span class="term" title="A 0-1 score of how well the model ranks likely winners over losers. 0.5 is a coin flip, 1.0 is perfect.">0.845 AUC</span> on a held-out 2024 season</li>
         </ul>
         <div class="powers">Powers <a href="./replays.html">Historical Replays</a> and the <a href="./live.html">Live Tracker</a> &mdash; same trained model, two different data sources (fixed historical plays vs. a live ESPN feed).</div>
       </div>
@@ -278,7 +282,7 @@
         <div class="kind">Pregame model</div>
         <h3>Matchup &rarr; win probability &amp; spread</h3>
         <ul>
-          <li>Ridge regression, isotonic-calibrated</li>
+          <li>Ridge regression, <span class="term" title="Adjusted so a predicted 70% actually wins about 70% of the time - not just ranked correctly, but numerically honest.">isotonic-calibrated</span></li>
           <li>Trained on games 2005&ndash;2022, calibrated on 2023&ndash;2024, tested on 2025</li>
           <li>Inputs: the betting line, rest days, division game, and situational context. A from-scratch Elo rating system was tried too, but backtested no better than the market line alone &mdash; so it isn't part of the shipped model</li>
           <li>Statistically indistinguishable from the closing line on the 2025 holdout, reported as-is rather than oversold</li>

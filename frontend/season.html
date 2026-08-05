@@ -255,6 +255,10 @@
     margin-top: 28px;
     line-height: 1.5;
   }
+  .term {
+    cursor: help;
+    border-bottom: 1px dotted var(--text-secondary);
+  }
   :focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
@@ -277,7 +281,7 @@
   </nav>
 
   <header>
-    <p class="eyebrow">Self-trained model &middot; Ridge regression, isotonic calibrated</p>
+    <p class="eyebrow">Self-trained model &middot; Ridge regression, <span class="term" title="Adjusted so a predicted 70% actually wins about 70% of the time - not just ranked correctly, but numerically honest.">isotonic calibrated</span></p>
     <h1>Season predictions</h1>
     <p class="sub">Pregame win probability and predicted spread for the upcoming week, from a model blending the closing betting line with rest, division, and situational context - refreshed daily as lines firm up. A self-computed Elo rating system was tested too, but backtested no better than the betting line alone, so it was left out of the shipped model (see note below).</p>
     <p class="honesty-note" id="honestyNote">Loading...</p>
@@ -303,7 +307,7 @@
   </main>
 
   <footer>
-    <p class="footnote">Predicts point margin with a single regressor; win probability is derived from that same prediction via isotonic calibration, so the two numbers never contradict each other. Backtested on the 2025 season: the model's win-probability Brier score and margin RMSE were statistically indistinguishable from simply using the closing betting line - it is not shown here as having an edge over the market, only as a transparent, from-scratch modeling exercise. Betting lines for games later in the week or season may not be posted yet.</p>
+    <p class="footnote">Predicts point margin with a single regressor; win probability is derived from that same prediction via <span class="term" title="Adjusted so a predicted 70% actually wins about 70% of the time - not just ranked correctly, but numerically honest.">isotonic calibration</span>, so the two numbers never contradict each other. Backtested on the 2025 season: the model's win-probability <span class="term" title="A 0 (perfect) to 1 (worst) score of how accurate the win-probability predictions were.">Brier score</span> and margin <span class="term" title="Root-mean-squared error - roughly, the average size of the model's point-spread miss.">RMSE</span> were statistically indistinguishable from simply using the closing betting line - it is not shown here as having an edge over the market, only as a transparent, from-scratch modeling exercise. Betting lines for games later in the week or season may not be posted yet.</p>
   </footer>
 </div>
 
@@ -345,6 +349,14 @@ const DATA_URL = 'https://noahfighter883.github.io/nfl-win-probability/season_pr
 function formatGameday(iso) {
   const d = new Date(iso + 'T00:00:00Z');
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+}
+
+// Matches formatGameday's month/day style rather than the browser's raw
+// toLocaleString() default, which mixes numeric-slash dates with seconds.
+function formatUpdatedAt(iso) {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+  });
 }
 
 function favoriteText(team, otherTeam, margin, line) {
@@ -462,6 +474,8 @@ function renderGame(g) {
     mlValue.textContent = `${mlFavorite} ${formatMoneyline(mlFavoriteLine)}`;
     const mlSub = document.createElement('div');
     mlSub.className = 'compare-subvalue';
+    mlSub.style.cursor = 'help';
+    mlSub.title = "The sportsbook's built-in profit margin (the \"vig\") removed, so both teams' implied odds sum to 100%.";
     mlSub.textContent = `${mlFavoritePct.toFixed(1)}% implied (de-vigged)`;
     mlCol.appendChild(mlSub);
   }
@@ -560,7 +574,7 @@ async function load() {
   gamesEl.innerHTML = '';
 
   noteEl.textContent = data.generated_at
-    ? `Last updated ${new Date(data.generated_at).toLocaleString()}`
+    ? `Last updated ${formatUpdatedAt(data.generated_at)}`
     : 'No prediction run yet.';
 
   if (!data.games || data.games.length === 0) {
@@ -582,12 +596,12 @@ document.getElementById('sortSelect').addEventListener('change', renderGames);
 
 load().catch((err) => {
   console.error(err);
-  document.getElementById('weekHeading').textContent = 'Failed to load predictions';
+  document.getElementById('weekHeading').textContent = "Couldn't load predictions";
   const gamesEl = document.getElementById('games');
   gamesEl.innerHTML = '';
   const empty = document.createElement('div');
   empty.className = 'empty-state';
-  empty.textContent = String(err.message || err);
+  empty.textContent = 'Check your connection and reload the page.';
   gamesEl.appendChild(empty);
 });
 </script>

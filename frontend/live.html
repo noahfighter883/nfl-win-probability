@@ -120,8 +120,8 @@
     line-height: 1.5;
   }
   .game-picker {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 8px;
     margin-bottom: 24px;
   }
@@ -163,6 +163,13 @@
     background: var(--live);
     flex-shrink: 0;
     animation: live-pulse 1.6s ease-in-out infinite;
+  }
+  /* The eyebrow dot signals "something is live right now" - showing it
+     while GAMES is empty would contradict the empty state directly below
+     it, so pollData() toggles this class based on whether any game
+     actually came back from the feed. */
+  .live-dot.idle {
+    display: none;
   }
   @keyframes live-pulse {
     0%, 100% { opacity: 1; }
@@ -290,6 +297,10 @@
     margin-top: 20px;
     line-height: 1.5;
   }
+  .term {
+    cursor: help;
+    border-bottom: 1px dotted var(--text-secondary);
+  }
   .empty-state {
     color: var(--text-secondary);
     font-size: 14px;
@@ -330,9 +341,9 @@
   </nav>
 
   <header>
-    <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span>Live &middot; updates automatically</p>
+    <p class="eyebrow"><span class="live-dot idle" id="eyebrowLiveDot" aria-hidden="true"></span>Live &middot; updates automatically</p>
     <h1>Live win probability</h1>
-    <p class="sub">The same model from the historical replay - XGBoost, isotonic calibrated, trained on 166k plays from 2021&ndash;2024 - scoring this week's games play by play as they happen.</p>
+    <p class="sub">The same model from the historical replay - XGBoost, <span class="term" title="Adjusted so a predicted 70% actually wins about 70% of the time - not just ranked correctly, but numerically honest.">isotonic calibrated</span>, trained on 166k plays from 2021&ndash;2024 - scoring this week's games play by play as they happen.</p>
   </header>
 
   <main>
@@ -433,6 +444,11 @@ async function pollData() {
     const ids = Object.keys(GAMES);
     buildPicker(ids);
 
+    // GAMES can hold finished games too (frozen visible for a couple days
+    // after final), so "live" means at least one is actually in progress,
+    // not just that GAMES is non-empty.
+    document.getElementById('eyebrowLiveDot').classList.toggle('idle', !ids.some(id => isLive(GAMES[id])));
+
     if (!ids.length) {
       document.getElementById('panelWrap').innerHTML = '<div class="empty-state" id="emptyState">No games in progress right now &mdash; check back during kickoff.</div>';
       currentGameId = null;
@@ -505,6 +521,9 @@ function updateHeader(g) {
 }
 
 function selectGame(id) {
+  // Re-clicking the already-selected game would otherwise silently wipe
+  // the viewer's scrub position back to the start for no reason.
+  if (id === currentGameId) return;
   currentGameId = id;
   playIndex = 0;
   atTip = true;

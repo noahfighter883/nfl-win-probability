@@ -116,8 +116,8 @@
     line-height: 1.5;
   }
   .game-picker {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 8px;
     margin-bottom: 24px;
   }
@@ -267,6 +267,10 @@
     margin-top: 20px;
     line-height: 1.5;
   }
+  .term {
+    cursor: help;
+    border-bottom: 1px dotted var(--text-secondary);
+  }
   :focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 2px;
@@ -298,7 +302,7 @@
   </nav>
 
   <header>
-    <p class="eyebrow">Self-trained model &middot; XGBoost, isotonic calibrated &middot; 0.845 AUC</p>
+    <p class="eyebrow">Self-trained model &middot; XGBoost, <span class="term" title="Adjusted so a predicted 70% actually wins about 70% of the time - not just ranked correctly, but numerically honest.">isotonic calibrated</span> &middot; <span class="term" title="A 0-1 score of how well the model ranks likely winners over losers. 0.5 is a coin flip, 1.0 is perfect.">0.845 AUC</span></p>
     <h1>Win probability replay</h1>
     <p class="sub">Five of the most dramatic games of the last four NFL seasons, replayed through a win probability model trained from scratch on 166k plays. Drag the scrubber or click anywhere on the chart to step through the game.</p>
   </header>
@@ -401,6 +405,9 @@ function buildPicker(ids) {
 }
 
 function selectGame(id) {
+  // Re-clicking the already-selected game would otherwise silently wipe
+  // the viewer's scrub position back to the start for no reason.
+  if (id === currentGameId) return;
   currentGameId = id;
   playIndex = 0;
   stopPlay();
@@ -477,6 +484,7 @@ function formatQuarter(q) {
 
 function updateReadout(idx) {
   const g = GAMES[currentGameId];
+  if (!g || !g.plays.length) return;
   const p = g.plays[idx];
   const [q, secsLeft, homeWp, desc, down, ydstogo, fieldPosition, homeScore, awayScore] = p;
   const dot = document.getElementById('scrubDot');
@@ -583,8 +591,8 @@ document.addEventListener('keydown', (e) => {
 
 loadData().catch((err) => {
   console.error(err);
-  document.getElementById('gameTitle').textContent = 'Failed to load game data';
-  document.getElementById('gameContext').textContent = String(err.message || err);
+  document.getElementById('gameTitle').textContent = "Couldn't load game data";
+  document.getElementById('gameContext').textContent = 'Check your connection and reload the page.';
 });
 </script>
 </body>
