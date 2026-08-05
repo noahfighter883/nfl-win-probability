@@ -189,6 +189,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .game-card.reveal { opacity: 1; transform: none; transition: none; }
+    .prob-bar div { transition: none; }
   }
   .game-row {
     display: flex;
@@ -218,7 +219,19 @@
     background: var(--panel-2);
     margin-bottom: 10px;
   }
-  .prob-bar div { height: 100%; }
+  /* Each segment is laid out at its real final width immediately (no width
+     transition - that's layout-thrashing) and grows in from zero via a
+     left-anchored scaleX, so the split visibly builds itself in as the card
+     reveals. Triggered by the reveal observer below, not on render. */
+  .prob-bar div {
+    height: 100%;
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .game-card.in-view .prob-bar div {
+    transform: scaleX(1);
+  }
   .compare {
     display: flex;
     justify-content: space-between;

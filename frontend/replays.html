@@ -261,6 +261,12 @@
   #scrubDot {
     transition: cx 0.12s linear, cy 0.12s linear;
   }
+  #wpLine {
+    transition: stroke-dashoffset 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .wp-area {
+    transition: opacity 0.5s ease-out;
+  }
   .footnote {
     font-size: 12px;
     color: var(--text-secondary);
@@ -453,11 +459,26 @@ function drawChart(g) {
     <line x1="0" y1="${MID}" x2="${W}" y2="${MID}" stroke="#232B3D" stroke-width="2" stroke-dasharray="4,4"/>
     <clipPath id="clipAbove"><rect x="0" y="0" width="${W}" height="${MID}"/></clipPath>
     <clipPath id="clipBelow"><rect x="0" y="${MID}" width="${W}" height="${MID}"/></clipPath>
-    <path d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)"/>
-    <path d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)"/>
-    <path d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
+    <path class="wp-area" d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)" style="opacity:0"/>
+    <path class="wp-area" d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)" style="opacity:0"/>
+    <path id="wpLine" d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
     <circle id="scrubDot" cx="0" cy="${MID}" r="6" fill="#E8B94A" stroke="#0A0E14" stroke-width="2"/>
   `;
+
+  // The line-draw is this product's one authored moment: picking a game
+  // traces its whole win-probability history left to right, rather than
+  // popping in fully-formed. Only fires here (once per game selection),
+  // never on per-play scrub updates.
+  const lineEl = document.getElementById('wpLine');
+  const areaEls = svg.querySelectorAll('.wp-area');
+  const len = lineEl.getTotalLength();
+  lineEl.style.strokeDasharray = len;
+  lineEl.style.strokeDashoffset = len;
+  lineEl.getBoundingClientRect(); // force reflow so the transition below actually animates
+  requestAnimationFrame(() => {
+    lineEl.style.strokeDashoffset = '0';
+    areaEls.forEach(el => { el.style.opacity = '1'; });
+  });
 
   svg.onclick = (e) => {
     const rect = svg.getBoundingClientRect();

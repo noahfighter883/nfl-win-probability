@@ -242,6 +242,17 @@
     font-family: 'Archivo Narrow', sans-serif;
     font-weight: 700;
     font-size: 26px;
+    display: inline-block;
+  }
+  /* Acknowledges a real live-poll swing landing while the viewer is
+     already watching the latest play - never fires from manual scrubbing. */
+  @keyframes wp-flash {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .wp-flash {
+    animation: wp-flash 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .readout-time {
     font-family: 'JetBrains Mono', monospace;
@@ -290,6 +301,12 @@
   }
   #scrubDot {
     transition: cx 0.12s linear, cy 0.12s linear;
+  }
+  #wpLine {
+    transition: stroke-dashoffset 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .wp-area {
+    transition: opacity 0.5s ease-out;
   }
   .footnote {
     font-size: 12px;
@@ -434,6 +451,14 @@ function isLive(g) {
   return Boolean(g.status) && g.status !== 'STATUS_FINAL';
 }
 
+function flashWpValue() {
+  const el = document.getElementById('wpValue');
+  if (!el) return;
+  el.classList.remove('wp-flash');
+  void el.offsetWidth; // restart the animation if it's already mid-flight
+  el.classList.add('wp-flash');
+}
+
 async function pollData() {
   try {
     const res = await fetch(DATA_URL, { cache: 'no-store' });
@@ -464,13 +489,15 @@ async function pollData() {
     // to the newest play if the viewer was already caught up.
     const g = GAMES[currentGameId];
     document.getElementById('scrubber').max = g.plays.length - 1;
-    drawChart(g);
-    if (atTip && g.plays.length > prevN) {
+    drawChart(g, false);
+    const newPlayArrived = atTip && g.plays.length > prevN;
+    if (newPlayArrived) {
       playIndex = g.plays.length - 1;
     }
     playIndex = Math.min(playIndex, g.plays.length - 1);
     document.getElementById('scrubber').value = playIndex;
     updateReadout(playIndex);
+    if (newPlayArrived) flashWpValue();
     updateHeader(g);
   } catch (err) {
     console.error(err);
@@ -548,7 +575,7 @@ function selectGame(id) {
   updateReadout(0);
 }
 
-function drawChart(g) {
+function drawChart(g, animateIn = true) {
   const svg = document.getElementById('chart');
   const n = g.plays.length;
   const W = 1000, H = 320, MID = H / 2;
@@ -573,11 +600,30 @@ function drawChart(g) {
     <line x1="0" y1="${MID}" x2="${W}" y2="${MID}" stroke="#232B3D" stroke-width="2" stroke-dasharray="4,4"/>
     <clipPath id="clipAbove"><rect x="0" y="0" width="${W}" height="${MID}"/></clipPath>
     <clipPath id="clipBelow"><rect x="0" y="${MID}" width="${W}" height="${MID}"/></clipPath>
-    <path d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)"/>
-    <path d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)"/>
-    <path d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
+    <path class="wp-area" d="${areaAbove}" fill="${homeColor}" fill-opacity="0.35" clip-path="url(#clipAbove)"/>
+    <path class="wp-area" d="${areaAbove}" fill="${awayColor}" fill-opacity="0.35" clip-path="url(#clipBelow)"/>
+    <path id="wpLine" d="${linePath}" fill="none" stroke="#E8B94A" stroke-width="2.5"/>
     <circle id="scrubDot" cx="0" cy="${MID}" r="6" fill="#E8B94A" stroke="#0A0E14" stroke-width="2"/>
   `;
+
+  // The line-draw is this product's one authored moment: picking a game
+  // traces its whole win-probability history left to right. Only animate
+  // on an actual game switch (animateIn) - the routine in-place redraw
+  // pollData() triggers every 20s for the still-selected live game must
+  // stay instant, or the chart would visibly replay every poll tick.
+  if (animateIn) {
+    const lineEl = document.getElementById('wpLine');
+    const areaEls = svg.querySelectorAll('.wp-area');
+    const len = lineEl.getTotalLength();
+    lineEl.style.strokeDasharray = len;
+    lineEl.style.strokeDashoffset = len;
+    areaEls.forEach(el => { el.style.opacity = '0'; });
+    lineEl.getBoundingClientRect(); // force reflow so the transition below actually animates
+    requestAnimationFrame(() => {
+      lineEl.style.strokeDashoffset = '0';
+      areaEls.forEach(el => { el.style.opacity = '1'; });
+    });
+  }
 
   svg.onclick = (e) => {
     const rect = svg.getBoundingClientRect();
