@@ -58,7 +58,8 @@ copying from `data/` after retraining.
 `frontend/WinProbabilityReplay.jsx` is a self-contained React component
 (no charting library — hand-built SVG) that replays five historic games
 play by play against their model-computed win probability curve. See
-`frontend/replays.html` for a framework-free demo of the same thing.
+`frontend/replays.html` for a framework-free demo of the same thing;
+`frontend/live.html` reuses the identical UI against the live feed below.
 
 `frontend/index.html` is the site's landing page (served at the domain
 root) — a brief explanation of how the in-game and pregame models are each
@@ -69,6 +70,41 @@ via headless Chrome), not mockups. There's no automated regeneration —
 they'll visually drift if `live.html`/`season.html`'s design changes, so
 recapture them by hand (same headless Chrome `--screenshot=` approach) after
 any visual change to those two pages.
+
+### Replay UI
+
+Both `replays.html` and `live.html` share the same play-by-play reader:
+
+- **Controls**: play/pause, step back/forward one play at a time, a
+  draggable scrubber, and click-anywhere-on-the-chart to seek. Arrow keys
+  and spacebar work as shortcuts.
+- **Readout**: each play shows down & distance, field position (e.g.
+  "3rd & 8 at MIN 46"), and the running score, alongside the win
+  probability and play description. Overtime periods are labeled `OT`/
+  `2OT` rather than nflverse's raw sequential quarter numbers (`Q5`, `Q6`).
+  For the historical showcase games this comes from nflverse's own pbp
+  columns (`down`, `ydstogo`, `yrdln`, `posteam_score_post`/
+  `defteam_score_post`) via the one-off `data_pipeline/add_down_distance.py`
+  script — see its docstring for how it's matched back without touching the
+  win probabilities already baked into `games_data.json`. For the live
+  tracker it's derived directly from the ESPN feed in `live_feed.py`/
+  `live_score.py`. `data_pipeline/fix_play_order.py` is a separate one-off
+  that fixed a pre-existing chronological-ordering bug in the showcase data
+  (game-clock values overlap between regulation and overtime, so a
+  clock-only sort interleaved OT plays into the middle of the 4th quarter).
+- **Motion**: selecting a game traces its win-probability line and area
+  in rather than popping it in fully formed — the one place this project
+  spends an authored animation, since watching the probability swing across
+  a game is the actual feature. `live.html`'s win-probability number also
+  briefly pulses when a real live-poll update lands while you're watching
+  the latest play (never on manual scrubbing), and its "LIVE" indicator
+  only shows/pulses when a game is actually in progress, not just because
+  the page has data cached. All motion respects `prefers-reduced-motion`.
+- **Accessibility/jargon**: team colors are lightened per-team until they
+  clear WCAG AA contrast (4.5:1) against the dark panel background, and
+  stats jargon (AUC, isotonic-calibrated, de-vigged, Brier score, RMSE) gets
+  a plain-language tooltip on first appearance per page instead of being
+  left unexplained.
 
 ## Live tracker
 
@@ -86,11 +122,15 @@ can't drive anything live. Instead:
   engineering used for training, scores them with the already-trained
   model (`data_pipeline/model/` — committed to the repo, not retrained per
   poll), and writes a `live_games_data.json` in the same shape as the
-  showcase `games_data.json` above. It merges into whatever's already at
-  `--out` rather than overwriting, and prunes anything older than 2 days —
-  since ESPN's live-event list stops returning a game the instant it goes
-  final, this is what keeps a just-finished game visible as a frozen result
-  instead of disappearing the moment the next poll runs.
+  showcase `games_data.json` above: each play is
+  `[qtr, secsLeft, homeWp, desc, down, ydstogo, fieldPosition, homeScore, awayScore]`
+  (the last five fields are display-only — they're never fed back into the
+  model, which only ever sees the raw feature columns in `features.py`).
+  It merges into whatever's already at `--out` rather than overwriting, and
+  prunes anything older than 2 days — since ESPN's live-event list stops
+  returning a game the instant it goes final, this is what keeps a
+  just-finished game visible as a frozen result instead of disappearing
+  the moment the next poll runs.
 - `.github/workflows/live-poll.yml` runs that on a schedule during NFL
   windows (Thu/Sun/Mon) and publishes the result to a `live-data` branch,
   served via GitHub Pages (repo Settings → Pages → source: `live-data`) at
@@ -180,7 +220,15 @@ same pattern as `data_pipeline/model/` above.
   don't move nearly as fast as a live game) and publishes to the same
   `live-data` branch as the live tracker, served the same way via GitHub
   Pages. `frontend/season.html` polls it and shows the model's prediction
-  directly alongside the Vegas line for comparison.
+  directly alongside the Vegas point spread *and* the Vegas moneyline —
+  the moneyline is de-vigged (the bookmaker's built-in margin normalized
+  out, `devigHomeWinProb()` in `season.html`, mirroring
+  `train_pregame_model.py`'s `devig_moneyline_prob()`) so it's a fair,
+  vig-free probability to compare against the model's own win probability,
+  not just the raw odds. Each game's card is sortable by kickoff time,
+  predicted spread size, or how far the model's spread diverges from
+  Vegas's, and its win-probability bar grows in as the card scrolls into
+  view rather than appearing pre-formed.
 
 ### Season predictions limitations
 
